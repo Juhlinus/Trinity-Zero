@@ -2867,12 +2867,6 @@ void SpellMgr::LoadDbcDataCorrections()
                 spellInfo->manaCost = 0;
                 spellInfo->manaPerSecond = 0;
                 break;
-            //!
-            //! TrinityZero note: are these below from vanilla?
-            //!
-            case 29809: // Desecration Arm - 36 instead of 37 - typo? :/
-                spellInfo->EffectRadiusIndex[0] = EFFECT_RADIUS_7_YARDS;
-                break;
             case 27892: // To Anchor 1
             case 27928: // To Anchor 1
             case 27935: // To Anchor 1

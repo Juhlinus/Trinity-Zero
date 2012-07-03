@@ -380,7 +380,6 @@ void TradeData::SetAccepted(bool state, bool crosssend /*= false*/)
 // * reputation;
 // * kill credit (for quest objectives).
 // Rewarding is initiated in two cases: when player kills unit in Unit::Kill()
-// and on battlegrounds in Battleground::RewardXPAtKill().
 //
 // Rewarding algorithm is:
 // 1. Initialize internal variables to default values.
@@ -461,10 +460,9 @@ inline void KillRewarder::_InitXP(Player* player)
 {
     // Get initial value of XP for kill.
     // XP is given:
-    // * on battlegrounds;
     // * otherwise, not in PvP;
     // * not if killer is on vehicle.
-    if (_isBattleGround || (!_isPvP))
+    if ((!_isPvP))
         _xp = Trinity::XP::Gain(player, _victim);
 }
 
@@ -524,30 +522,23 @@ inline void KillRewarder::_RewardKillCredit(Player* player)
 void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
 {
     // 4. Reward player.
-    if (!_isBattleGround)
+    // 4.1. Give honor (player must be alive and not on BG).
+    _RewardHonor(player);
+    // 4.1.1 Send player killcredit for quests with PlayerSlain
+    if (_victim->GetTypeId() == TYPEID_PLAYER)
+        player->KilledPlayerCredit();
+
+    // Give XP, reputation and kill credit only in PvE.
+    if (!_isPvP)
     {
-        // 4.1. Give honor (player must be alive and not on BG).
-        _RewardHonor(player);
-        // 4.1.1 Send player killcredit for quests with PlayerSlain
-        if (_victim->GetTypeId() == TYPEID_PLAYER)
-            player->KilledPlayerCredit();
-    }
-    // Give XP only in PvE or in battlegrounds.
-    // Give reputation and kill credit only in PvE.
-    if (!_isPvP || _isBattleGround)
-    {
-        const float rate = _group ?
-            _groupRate * float(player->getLevel()) / _sumLevel : // Group rate depends on summary level.
-            1.0f;                                                // Personal rate is 100%.
-        if (_xp)
-            // 4.2. Give XP.
+        // Group rate depends on summary level, personal rate is 100%.
+        const float rate = _group ? (_groupRate * float(player->getLevel())) / _sumLevel : 1.0f;
+        if (_xp) // 4.2. Give XP.
             _RewardXP(player, rate);
-        if (!_isBattleGround)
-        {
-            // If killer is in dungeon then all members receive full reputation at kill.
-            _RewardReputation(player, isDungeon ? 1.0f : rate);
-            _RewardKillCredit(player);
-        }
+
+        // If killer is in dungeon then all members receive full reputation at kill.
+        _RewardReputation(player, isDungeon ? 1.0f : rate);
+        _RewardKillCredit(player);
     }
 }
 
@@ -559,18 +550,13 @@ void KillRewarder::_RewardGroup()
             // 3.1.1. Initialize initial XP amount based on maximum level of group member,
             //        for whom victim is not gray.
             _InitXP(_maxNotGrayMember);
-        // To avoid unnecessary calculations and calls,
-        // proceed only if XP is not ZERO or player is not on battleground
-        // (battleground rewards only XP, that's why).
-        if (!_isBattleGround || _xp)
+        // To avoid unnecessary calculations and calls, proceed only if XP is not ZERO
+        if (_xp)
         {
             const bool isDungeon = !_isPvP && sMapStore.LookupEntry(_killer->GetMapId())->IsDungeon();
-            if (!_isBattleGround)
-            {
-                // 3.1.2. Alter group rate if group is in raid (not for battlegrounds).
-                const bool isRaid = !_isPvP && sMapStore.LookupEntry(_killer->GetMapId())->IsRaid() && _group->isRaidGroup();
-                _groupRate = Trinity::XP::xp_in_group_rate(_count, isRaid);
-            }
+            // 3.1.2. Alter group rate if group is in raid.
+            const bool isRaid = !_isPvP && sMapStore.LookupEntry(_killer->GetMapId())->IsRaid() && _group->isRaidGroup();
+            _groupRate = Trinity::XP::xp_in_group_rate(_count, isRaid);
 
             // 3.1.3. Reward each group member (even dead or corpse) within reward distance.
             for (GroupReference* itr = _group->GetFirstMember(); itr != NULL; itr = itr->next())
@@ -592,11 +578,8 @@ void KillRewarder::Reward()
         // 3.2. Reward single killer (not group case).
         // 3.2.1. Initialize initial XP amount based on killer's level.
         _InitXP(_killer);
-        // To avoid unnecessary calculations and calls,
-        // proceed only if XP is not ZERO or player is not on battleground
-        // (battleground rewards only XP, that's why).
-        if (!_isBattleGround || _xp)
-            // 3.2.2. Reward killer.
+        // To avoid unnecessary calculations and calls, proceed only if XP is not ZERO
+        if (_xp) // 3.2.2. Reward killer.
             _RewardPlayer(_killer, false);
     }
 

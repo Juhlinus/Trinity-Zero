@@ -47,8 +47,6 @@ enum BattlegroundQuests
     SPELL_AB_QUEST_REWARD           = 43484,
     SPELL_AV_QUEST_REWARD           = 43475,
     SPELL_AV_QUEST_KILLED_BOSS      = 23658,
-    SPELL_EY_QUEST_REWARD           = 43477,
-    SPELL_SA_QUEST_REWARD           = 61213,
     SPELL_AB_QUEST_REWARD_4_BASES   = 24061,
     SPELL_AB_QUEST_REWARD_5_BASES   = 24064
 };
@@ -61,19 +59,22 @@ enum BattlegroundMarks
     SPELL_AB_MARK_WINNER            = 24953,
     SPELL_AV_MARK_LOSER             = 24954,
     SPELL_AV_MARK_WINNER            = 24955,
-    SPELL_SA_MARK_WINNER            = 61160,
-    SPELL_SA_MARK_LOSER             = 61159,
     ITEM_AV_MARK_OF_HONOR           = 20560,
     ITEM_WS_MARK_OF_HONOR           = 20558,
     ITEM_AB_MARK_OF_HONOR           = 20559,
-    ITEM_EY_MARK_OF_HONOR           = 29024,
-    ITEM_SA_MARK_OF_HONOR           = 42425
 };
 
 enum BattlegroundMarksCount
 {
     ITEM_WINNER_COUNT               = 3,
     ITEM_LOSER_COUNT                = 1
+};
+
+enum BattlegroundBattlemasters
+{
+    BATTLEMSTER_ALTERAC_VALLEY  = 15972,
+    BATTLEMASTER_WARSONG_GULCH  = 14623,
+    BATTLEMASTER_ARATHI_BASIN   = 14879,
 };
 
 enum BattlegroundCreatures
@@ -103,7 +104,7 @@ enum BattlegroundTimeIntervals
     INVITATION_REMIND_TIME          = 20000,                // ms
     INVITE_ACCEPT_WAIT_TIME         = 40000,                // ms
     TIME_TO_AUTOREMOVE              = 120000,               // ms
-    MAX_OFFLINE_TIME                = 300,                  // secs
+    MAX_OFFLINE_TIME                = 120,                  // secs
     RESPAWN_ONE_DAY                 = 86400,                // secs
     RESPAWN_IMMEDIATELY             = 0,                    // secs
     BUFF_RESPAWN_TIME               = 180,                  // secs
@@ -166,13 +167,10 @@ enum ScoreType
     SCORE_DEATHS                = 2,
     SCORE_HONORABLE_KILLS       = 3,
     SCORE_BONUS_HONOR           = 4,
-    //EY, but in MSG_PVP_LOG_DATA opcode!
-    SCORE_DAMAGE_DONE           = 5,
-    SCORE_HEALING_DONE          = 6,
     //WS
     SCORE_FLAG_CAPTURES         = 7,
     SCORE_FLAG_RETURNS          = 8,
-    //AB and IC
+    //AB
     SCORE_BASES_ASSAULTED       = 9,
     SCORE_BASES_DEFENDED        = 10,
     //AV
@@ -183,9 +181,6 @@ enum ScoreType
     SCORE_MINES_CAPTURED        = 15,
     SCORE_LEADERS_KILLED        = 16,
     SCORE_SECONDARY_OBJECTIVES  = 17,
-    //SOTA
-    SCORE_DESTROYED_DEMOLISHER  = 18,
-    SCORE_DESTROYED_WALL        = 19,
 };
 
 enum BattlegroundType
@@ -304,7 +299,7 @@ class Battleground
         uint32 GetLastResurrectTime() const { return m_LastResurrectTime; }
         uint32 GetMaxPlayers() const        { return m_MaxPlayers; }
         uint32 GetMinPlayers() const        { return m_MinPlayers; }
-
+        uint32 GetBattlemasterEntry() const;
         uint32 GetMinLevel() const          { return m_LevelMin; }
         uint32 GetMaxLevel() const          { return m_LevelMax; }
 
@@ -497,8 +492,9 @@ class Battleground
         // virtual score-array - get's used in bg-subclasses
         int32 m_TeamScores[BG_TEAMS_COUNT];
 
-        void RewardXPAtKill(Player* killer, Player* victim);
         virtual uint64 GetFlagPickerGUID(int32 /*team*/ = -1) const { return 0; }
+        void SendRewardMarkByMail(Player* player, uint32 mark, uint32 count);
+        void RewardQuest(Player* player);
 
     protected:
         // this method is called, when BG cannot spawn its own spirit guide, or something is wrong, It correctly ends Battleground

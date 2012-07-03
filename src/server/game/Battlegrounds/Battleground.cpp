@@ -723,6 +723,9 @@ void Battleground::EndBattleground(uint32 winner)
         BattlegroundQueueTypeId bgQueueTypeId = BattlegroundMgr::BGQueueTypeId(GetTypeID());
         sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, this, player->GetBattlegroundQueueIndex(bgQueueTypeId), STATUS_IN_PROGRESS, TIME_TO_AUTOREMOVE, GetStartTime());
         player->GetSession()->SendPacket(&data);
+
+        // Complete quests that require you to win a BG
+        RewardQuest(player);
     }
 
     if (winmsg_id)
@@ -1102,12 +1105,6 @@ void Battleground::UpdatePlayerScore(Player* Source, uint32 type, uint32 value, 
             else
                 itr->second->BonusHonor += value;
             break;
-        case SCORE_DAMAGE_DONE:                             // Damage Done
-            itr->second->DamageDone += value;
-            break;
-        case SCORE_HEALING_DONE:                            // Healing Done
-            itr->second->HealingDone += value;
-            break;
         default:
             sLog->outError("Battleground::UpdatePlayerScore: unknown score type (%u) for BG (map: %u, instance id: %u)!",
                 type, m_MapId, m_InstanceID);
@@ -1345,26 +1342,20 @@ bool Battleground::DelObject(uint32 type)
 
 bool Battleground::AddSpiritGuide(uint32 type, float x, float y, float z, float o, uint32 team)
 {
-    uint32 entry = (team == ALLIANCE) ?
-        BG_CREATURE_ENTRY_A_SPIRITGUIDE :
-        BG_CREATURE_ENTRY_H_SPIRITGUIDE;
+    uint32 entry = (team == ALLIANCE) ? BG_CREATURE_ENTRY_A_SPIRITGUIDE : BG_CREATURE_ENTRY_H_SPIRITGUIDE;
 
     if (Creature* creature = AddCreature(entry, type, team, x, y, z, o))
     {
         creature->setDeathState(DEAD);
         creature->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, creature->GetGUID());
-        // aura
-        // TODO: Fix display here
-        // creature->SetVisibleAura(0, SPELL_SPIRIT_HEAL_CHANNEL);
         // casting visual effect
         creature->SetUInt32Value(UNIT_CHANNEL_SPELL, SPELL_SPIRIT_HEAL_CHANNEL);
         // correct cast speed
         creature->SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
-        //creature->CastSpell(creature, SPELL_SPIRIT_HEAL_CHANNEL, true);
+        creature->CastSpell(creature, SPELL_SPIRIT_HEAL_CHANNEL, true);
         return true;
     }
-    sLog->outError("Battleground::AddSpiritGuide: cannot create spirit guide (type: %u, entry: %u) for BG (map: %u, instance id: %u)!",
-        type, entry, m_MapId, m_InstanceID);
+    sLog->outError("Battleground::AddSpiritGuide: cannot create spirit guide (type: %u, entry: %u) for BG (map: %u, instance id: %u)!", type, entry, m_MapId, m_InstanceID);
     EndNow();
     return false;
 }
@@ -1493,9 +1484,14 @@ void Battleground::HandleKillPlayer(Player* player, Player* killer)
 {
     // Add +1 deaths
     UpdatePlayerScore(player, SCORE_DEATHS, 1);
+
     // Add +1 kills to group and +1 killing_blows to killer
     if (killer)
     {
+        // In case player kills itself through fall damage or whatsoever
+        if (killer == player)
+            return;
+
         UpdatePlayerScore(killer, SCORE_HONORABLE_KILLS, 1);
         UpdatePlayerScore(killer, SCORE_KILLING_BLOWS, 1);
 
@@ -1512,7 +1508,6 @@ void Battleground::HandleKillPlayer(Player* player, Player* killer)
 
     // To be able to remove insignia -- ONLY IN Battlegrounds
     player->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
-    RewardXPAtKill(killer, player);
 }
 
 // Return the player's team based on battlegroundplayer info
@@ -1609,8 +1604,71 @@ void Battleground::SetBracket(PvPDifficultyEntry const* bracketEntry)
     SetLevelRange(bracketEntry->minLevel, bracketEntry->maxLevel);
 }
 
-void Battleground::RewardXPAtKill(Player* killer, Player* victim)
+uint32 Battleground::GetBattlemasterEntry() const
 {
-    if (sWorld->getBoolConfig(CONFIG_BG_XP_FOR_KILL) && killer && victim)
-        killer->RewardPlayerAndGroupAtKill(victim, true);
+    switch (GetTypeID())
+    {
+        case BATTLEGROUND_AV: return BATTLEMSTER_ALTERAC_VALLEY;
+        case BATTLEGROUND_WS: return BATTLEMASTER_WARSONG_GULCH;
+        case BATTLEGROUND_AB: return BATTLEMASTER_ARATHI_BASIN;
+        default:              return 0;
+    }
+}
+
+void Battleground::SendRewardMarkByMail(Player* player, uint32 mark, uint32 count)
+{
+    uint32 bmEntry = GetBattlemasterEntry();
+    if (!bmEntry)
+        return;
+
+    ItemTemplate const* markProto = sObjectMgr->GetItemTemplate(mark);
+    if (!markProto)
+        return;
+
+    if (Item* markItem = Item::CreateItem(mark, count, player))
+    {
+        // Subject (item name)
+        std::string subject = markProto->Name1;
+        int loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
+        if (loc_idx >= 0)
+            if (ItemLocale const* il = sObjectMgr->GetItemLocale(mark))
+                if (il->Name.size() > size_t(loc_idx) && !il->Name[loc_idx].empty())
+                    subject = il->Name[loc_idx];
+
+        // Text
+        std::string textFormat = player->GetSession()->GetTrinityString(LANG_BG_MARK_BY_MAIL);
+        SQLTransaction trans = CharacterDatabase.BeginTransaction();
+        MailSender sender(MAIL_CREATURE, player->GetGUIDLow(), MAIL_STATIONERY_DEFAULT);
+        MailDraft draft(subject, textFormat);
+        // Add all items to the mail
+        for (uint8 i = 0; i < count; ++i)
+        {
+            markItem->SaveToDB(trans);
+            draft.AddItem(markItem);
+        }
+
+        draft.SendMailTo(trans, player, sender);
+    }
+}
+
+void Battleground::RewardQuest(Player* player)
+{
+    // 'Inactive' this aura prevents the player from gaining honor points and battleground tokens
+    if (player->HasAura(SPELL_AURA_PLAYER_INACTIVE))
+        return;
+
+    switch (GetTypeID())
+    {
+        case BATTLEGROUND_AV:
+            player->CastSpell(player, SPELL_AV_QUEST_REWARD, true);
+            break;
+        case BATTLEGROUND_WS:
+            player->CastSpell(player, SPELL_WS_QUEST_REWARD, true);
+            break;
+        case BATTLEGROUND_AB:
+            player->CastSpell(player, SPELL_AB_QUEST_REWARD, true);
+            break;
+        default:
+            return;
+    }
 }

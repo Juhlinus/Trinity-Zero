@@ -141,7 +141,6 @@ void AddSC_the_scarlet_enclave_c5();
 void AddSC_boss_arcanist_doan();             //Scarlet Monastery
 void AddSC_boss_azshir_the_sleepless();
 void AddSC_boss_bloodmage_thalnos();
-void AddSC_boss_headless_horseman();
 void AddSC_boss_herod();
 void AddSC_boss_high_inquisitor_fairbanks();
 void AddSC_boss_houndmaster_loksey();
@@ -443,7 +442,6 @@ void AddEasternKingdomsScripts()
     AddSC_boss_arcanist_doan();             //Scarlet Monastery
     AddSC_boss_azshir_the_sleepless();
     AddSC_boss_bloodmage_thalnos();
-    AddSC_boss_headless_horseman(); //! TrinityZero note: Is this also a pre-TBC event?
     AddSC_boss_herod();
     AddSC_boss_high_inquisitor_fairbanks();
     AddSC_boss_houndmaster_loksey();

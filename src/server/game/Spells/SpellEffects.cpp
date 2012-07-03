@@ -58,6 +58,7 @@
 #include "GameObjectAI.h"
 #include "AccountMgr.h"
 #include "InstanceScript.h"
+#include "BattlegroundMgr.h"
 
 pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
 {
@@ -327,16 +328,19 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                 switch (m_spellInfo->Id)                     // better way to check unknown
                 {
                     // Consumption
-                    case 28865: //! TrinityZero note: vanilla or not?
+                    case 28865:
                         damage = (((InstanceMap*)m_caster->GetMap())->GetDifficulty() == REGULAR_DIFFICULTY ? 2750 : 4250);
                         break;
-                    case 25599:                             // Thundercrash
+                    // Thundercrash
+                    case 25599:
                     {
                         damage = unitTarget->GetHealth() / 2;
                         if (damage < 200)
                             damage = 200;
                         break;
                     }
+                    default:
+                        break;
                 }
                 break;
             }
@@ -1276,18 +1280,16 @@ void Spell::DoCreateItem(uint32 /*i*/, uint32 itemtype)
         num_to_add = pProto->GetMaxStackSize();
 
     // init items_count to 1, since 1 item will be created regardless of specialization
-    int items_count=1;
+    int items_count = 1;
     // the chance to create additional items
-    float additionalCreateChance=0.0f;
+    float additionalCreateChance = 0.0f;
     // the maximum number of created additional items
-    uint8 additionalMaxNum=0;
+    uint8 additionalMaxNum = 0;
     // get the chance and maximum number for creating extra items
     if (canCreateExtraItems(player, m_spellInfo->Id, additionalCreateChance, additionalMaxNum))
-    {
         // roll with this chance till we roll not to create or we create the max num
         while (roll_chance_f(additionalCreateChance) && items_count <= additionalMaxNum)
             ++items_count;
-    }
 
     // really will be created more items
     num_to_add *= items_count;
@@ -1298,8 +1300,16 @@ void Spell::DoCreateItem(uint32 /*i*/, uint32 itemtype)
     InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, newitemid, num_to_add, &no_space);
     if (msg != EQUIP_ERR_OK)
     {
+        if (bgType != 0 && msg == EQUIP_ERR_INVENTORY_FULL)
+        {
+            // for battleground marks send by mail if not add all expected
+            if (Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(BattlegroundTypeId(bgType)))
+                bg->SendRewardMarkByMail(player, newitemid, no_space);
+
+            return;
+        }
         // convert to possible store amount
-        if (msg == EQUIP_ERR_INVENTORY_FULL || msg == EQUIP_ERR_CANT_CARRY_MORE_OF_THIS)
+        else if (msg == EQUIP_ERR_INVENTORY_FULL || msg == EQUIP_ERR_CANT_CARRY_MORE_OF_THIS)
             num_to_add -= no_space;
         else
         {
@@ -1333,15 +1343,6 @@ void Spell::DoCreateItem(uint32 /*i*/, uint32 itemtype)
         if (bgType == 0)
             player->UpdateCraftSkill(m_spellInfo->Id);
     }
-
-/*
-    // for battleground marks send by mail if not add all expected
-    if (no_space > 0 && bgType)
-    {
-        if (Battleground* bg = sBattlegroundMgr->GetBattlegroundTemplate(BattlegroundTypeId(bgType)))
-            bg->SendRewardMarkByMail(player, newitemid, no_space);
-    }
-*/
 }
 
 void Spell::EffectCreateItem(SpellEffIndex effIndex)
