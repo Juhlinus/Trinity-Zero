@@ -63,10 +63,6 @@ bool adt_MHDR::prepareLoadedData()
     if (offsMCIN && !getMCIN()->prepareLoadedData())
         return false;
 
-    // Check and prepare MH2O
-    if (offsMH2O && !getMH2O()->prepareLoadedData())
-        return false;
-
     return true;
 }
 

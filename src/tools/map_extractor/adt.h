@@ -262,8 +262,6 @@ class adt_MHDR
     uint32 offsMapObejctsIds;  // MWID
     uint32 offsDoodsDef;       // MDDF
     uint32 offsObjectsDef;     // MODF
-    uint32 offsMFBO;           // MFBO
-    uint32 offsMH2O;           // MH2O
     uint32 data1;
     uint32 data2;
     uint32 data3;
@@ -272,7 +270,6 @@ class adt_MHDR
 public:
     bool prepareLoadedData();
     adt_MCIN *getMCIN(){ return (adt_MCIN *)((uint8 *)&pad+offsMCIN);}
-    adt_MH2O *getMH2O(){ return offsMH2O ? (adt_MH2O *)((uint8 *)&pad+offsMH2O) : 0;}
 
 };
 
