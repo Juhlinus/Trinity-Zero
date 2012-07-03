@@ -43,9 +43,8 @@ enum BattlegroundSounds
 
 enum BattlegroundQuests
 {
-    SPELL_WS_QUEST_REWARD           = 43483,
-    SPELL_AB_QUEST_REWARD           = 43484,
-    SPELL_AV_QUEST_REWARD           = 43475,
+    SPELL_WS_QUEST_REWARD_ALLIANCE  = 23659,
+    SPELL_WS_QUEST_REWARD_HORDE     = 23660,
     SPELL_AV_QUEST_KILLED_BOSS      = 23658,
     SPELL_AB_QUEST_REWARD_4_BASES   = 24061,
     SPELL_AB_QUEST_REWARD_5_BASES   = 24064
@@ -88,13 +87,8 @@ enum BattlegroundSpells
     SPELL_WAITING_FOR_RESURRECT     = 2584,                 // Waiting to Resurrect
     SPELL_SPIRIT_HEAL_CHANNEL       = 22011,                // Spirit Heal Channel
     SPELL_SPIRIT_HEAL               = 22012,                // Spirit Heal
-    SPELL_RESURRECTION_VISUAL       = 24171,                // Resurrection Impact Visual
-    SPELL_PREPARATION               = 44521,                // Preparation
-    SPELL_SPIRIT_HEAL_MANA          = 44535,                // Spirit Heal
-    SPELL_RECENTLY_DROPPED_FLAG     = 42792,                // Recently Dropped Flag
-    SPELL_AURA_PLAYER_INACTIVE      = 43681,                // Inactive
-    SPELL_HONORABLE_DEFENDER_25Y    = 68652,                // +50% honor when standing at a capture point that you control, 25yards radius (added in 3.2)
-    SPELL_HONORABLE_DEFENDER_60Y    = 66157,                // +50% honor when standing at a capture point that you control, 60yards radius (added in 3.2), probably for 40+ player battlegrounds
+    SPELL_RESURRECTION_VISUAL       = 24171,                // Resurrection Impact Visual (guessed)
+    SPELL_SUMMON_LAST_USED_PET      = 6962,                 // Pet Summoned
 };
 
 enum BattlegroundTimeIntervals
@@ -163,17 +157,23 @@ enum BattlegroundQueueTypeId
 
 enum ScoreType
 {
+    // General
     SCORE_KILLING_BLOWS         = 1,
     SCORE_DEATHS                = 2,
     SCORE_HONORABLE_KILLS       = 3,
     SCORE_BONUS_HONOR           = 4,
-    //WS
+    SCORE_DAMAGE_DONE           = 5,
+    SCORE_HEALING_DONE          = 6,
+
+    // Warsong Gulch
     SCORE_FLAG_CAPTURES         = 7,
     SCORE_FLAG_RETURNS          = 8,
-    //AB
+
+    // Arathi Basin
     SCORE_BASES_ASSAULTED       = 9,
     SCORE_BASES_DEFENDED        = 10,
-    //AV
+
+    // Alterac Valley
     SCORE_GRAVEYARDS_ASSAULTED  = 11,
     SCORE_GRAVEYARDS_DEFENDED   = 12,
     SCORE_TOWERS_ASSAULTED      = 13,

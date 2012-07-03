@@ -343,11 +343,13 @@ inline void Battleground::_ProcessRessurect(uint32 diff)
             Player* player = ObjectAccessor::FindPlayer(*itr);
             if (!player)
                 continue;
+
             player->ResurrectPlayer(1.0f);
-            player->CastSpell(player, 6962, true);
-            player->CastSpell(player, SPELL_SPIRIT_HEAL_MANA, true);
+            player->CastSpell(player, SPELL_SUMMON_LAST_USED_PET, true);
+            //player->CastSpell(player, SPELL_SPIRIT_HEAL_MANA, true);
             sObjectAccessor->ConvertCorpseForPlayer(*itr);
         }
+
         m_ResurrectQueue.clear();
     }
 }
@@ -458,13 +460,8 @@ inline void Battleground::_ProcessJoin(uint32 diff)
         PlaySoundToAll(SOUND_BG_START);
 
         for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        {
             if (Player* player = ObjectAccessor::FindPlayer(itr->first))
-            {
-                player->RemoveAurasDueToSpell(SPELL_PREPARATION);
                 player->ResetAllPowers();
-            }
-        }
 
         // Announce BG starting
         if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_ENABLE))
@@ -725,7 +722,8 @@ void Battleground::EndBattleground(uint32 winner)
         player->GetSession()->SendPacket(&data);
 
         // Complete quests that require you to win a BG
-        RewardQuest(player);
+        if (player->GetTeam() == winner)
+            RewardQuest(player);
     }
 
     if (winmsg_id)
@@ -791,8 +789,6 @@ void Battleground::RemovePlayerAtLeave(uint64 guid, bool Transport, bool SendPac
 
         if (player)
         {
-            player->ClearAfkReports();
-
             if (!team)
                 team = player->GetTeam();
 
@@ -917,9 +913,6 @@ void Battleground::AddPlayer(Player* player)
 
     player->RemoveAurasByType(SPELL_AURA_MOUNTED);
 
-    if (GetStatus() == STATUS_WAIT_JOIN)                 // not started yet
-        player->CastSpell(player, SPELL_PREPARATION, true);   // reduces all mana cost of spells.
-
     // setup BG group membership
     PlayerAddedToBGCheckIfBGIsRunning(player);
     AddOrSetPlayerToCorrectBgGroup(player, team);
@@ -974,8 +967,6 @@ void Battleground::EventPlayerLoggedIn(Player* player)
     }
     m_Players[guid].OfflineRemoveTime = 0;
     PlayerAddedToBGCheckIfBGIsRunning(player);
-    // if battleground is starting, then add preparation aura
-    // we don't have to do that, because preparation aura isn't removed when player logs out
 }
 
 // This method should be called when player logs out from running battleground
@@ -1653,22 +1644,6 @@ void Battleground::SendRewardMarkByMail(Player* player, uint32 mark, uint32 coun
 
 void Battleground::RewardQuest(Player* player)
 {
-    // 'Inactive' this aura prevents the player from gaining honor points and battleground tokens
-    if (player->HasAura(SPELL_AURA_PLAYER_INACTIVE))
-        return;
-
-    switch (GetTypeID())
-    {
-        case BATTLEGROUND_AV:
-            player->CastSpell(player, SPELL_AV_QUEST_REWARD, true);
-            break;
-        case BATTLEGROUND_WS:
-            player->CastSpell(player, SPELL_WS_QUEST_REWARD, true);
-            break;
-        case BATTLEGROUND_AB:
-            player->CastSpell(player, SPELL_AB_QUEST_REWARD, true);
-            break;
-        default:
-            return;
-    }
+    if (GetTypeID() == BATTLEGROUND_AV)
+        player->CastSpell(player, (player->GetTeam() == ALLIANCE ? SPELL_WS_QUEST_REWARD_ALLIANCE : SPELL_WS_QUEST_REWARD_HORDE), true);
 }

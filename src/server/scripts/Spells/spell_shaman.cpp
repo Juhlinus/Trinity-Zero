@@ -159,7 +159,7 @@ class spell_sha_earthbind_totem : public SpellScriptLoader
 
             bool Validate(SpellInfo const* /*spellEntry*/)
             {
-                if (!sSpellMgr->GetSpellInfo(SHAMAN_TOTEM_SPELL_EARTHBIND_TOTEM)
+                if (!sSpellMgr->GetSpellInfo(SHAMAN_TOTEM_SPELL_EARTHBIND_TOTEM))
                     return false;
                 return true;
             }
@@ -168,6 +168,7 @@ class spell_sha_earthbind_totem : public SpellScriptLoader
             {
                 if (!GetCaster())
                     return;
+
                 if (Player* owner = GetCaster()->GetCharmerOrOwnerPlayerOrPlayerItself())
                     if (AuraEffect* aur = owner->GetDummyAuraEffect(SPELLFAMILY_SHAMAN, 2289, 0))
                         if (roll_chance_i(aur->GetBaseAmount()))
@@ -178,15 +179,11 @@ class spell_sha_earthbind_totem : public SpellScriptLoader
             {
                 if (!GetCaster())
                     return;
-                Player* owner = GetCaster()->GetCharmerOrOwnerPlayerOrPlayerItself();
-                if (!owner)
-                    return;
-                // Storm, Earth and Fire
-                if (AuraEffect* aurEff = owner->GetAuraEffectOfRankedSpell(SHAMAN_SPELL_STORM_EARTH_AND_FIRE, EFFECT_1))
-                {
-                    if (roll_chance_i(aurEff->GetAmount()))
-                        GetCaster()->CastSpell(GetCaster(), EARTHBIND_TOTEM_SPELL_EARTHGRAB, false);
-                }
+
+                if (Player* owner = GetCaster()->GetCharmerOrOwnerPlayerOrPlayerItself())
+                    if (AuraEffect* aurEff = owner->GetAuraEffectOfRankedSpell(SHAMAN_SPELL_STORM_EARTH_AND_FIRE, EFFECT_1))
+                        if (roll_chance_i(aurEff->GetAmount()))
+                            GetCaster()->CastSpell(GetCaster(), EARTHBIND_TOTEM_SPELL_EARTHGRAB, false);
             }
 
             void Register()
@@ -435,50 +432,6 @@ class spell_sha_chain_heal : public SpellScriptLoader
         }
 };
 
-class spell_sha_flame_shock : public SpellScriptLoader
-{
-    public:
-        spell_sha_flame_shock() : SpellScriptLoader("spell_sha_flame_shock") { }
-
-        class spell_sha_flame_shock_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_sha_flame_shock_AuraScript);
-
-            bool Validate(SpellInfo const* /*spell*/)
-            {
-                if (!sSpellMgr->GetSpellInfo(SHAMAN_LAVA_FLOWS_R1))
-                    return false;
-                if (!sSpellMgr->GetSpellInfo(SHAMAN_LAVA_FLOWS_TRIGGERED_R1))
-                    return false;
-                return true;
-            }
-
-            void HandleDispel(DispelInfo* /*dispelInfo*/)
-            {
-                if (Unit* caster = GetCaster())
-                    // Lava Flows
-                    if (AuraEffect const* aurEff = caster->GetDummyAuraEffect(SPELLFAMILY_SHAMAN, ICON_ID_SHAMAN_LAVA_FLOW, EFFECT_0))
-                    {
-                        if (sSpellMgr->GetFirstSpellInChain(SHAMAN_LAVA_FLOWS_R1) != sSpellMgr->GetFirstSpellInChain(aurEff->GetId()))
-                            return;
-
-                        uint8 rank = sSpellMgr->GetSpellRank(aurEff->GetId());
-                        caster->CastSpell(caster, sSpellMgr->GetSpellWithRank(SHAMAN_LAVA_FLOWS_TRIGGERED_R1, rank), true);
-                    }
-            }
-
-            void Register()
-            {
-                AfterDispel += AuraDispelFn(spell_sha_flame_shock_AuraScript::HandleDispel);
-            }
-        };
-
-        AuraScript* GetAuraScript() const
-        {
-            return new spell_sha_flame_shock_AuraScript();
-        }
-};
-
 class spell_sha_sentry_totem : public SpellScriptLoader
 {
     public:
@@ -530,7 +483,6 @@ void AddSC_shaman_spell_scripts()
     new spell_sha_earthbind_totem();
     new spell_sha_bloodlust();
     new spell_sha_heroism();
-    new spell_sha_ancestral_awakening_proc();
     new spell_sha_healing_stream_totem();
     new spell_sha_mana_spring_totem();
     new spell_sha_chain_heal();

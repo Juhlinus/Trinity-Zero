@@ -31,7 +31,15 @@ enum Spells
 {
     SPELL_AVATAR                                  = 19135,
     SPELL_THUNDERCLAP                             = 15588,
-    SPELL_STORMBOLT                               = 20685 // not sure
+    SPELL_STORMBOLT                               = 20685, // not sure
+
+    SPELL_COMPLETE_ALTERAC_VALLEY_QUEST           = 23658,
+};
+
+enum Quests
+{
+    QUEST_THE_BATTLE_OF_ALTERAC_H   = 7142,
+    QUEST_THE_BATTLE_OF_ALTERAC_A   = 7141,
 };
 
 class boss_vanndar : public CreatureScript
@@ -51,11 +59,11 @@ public:
 
         void Reset()
         {
-            AvatarTimer        = 3 * IN_MILLISECONDS;
-            ThunderclapTimer   = 4 * IN_MILLISECONDS;
-            StormboltTimer     = 6 * IN_MILLISECONDS;
-            ResetTimer         = 5 * IN_MILLISECONDS;
-            YellTimer = urand(20 * IN_MILLISECONDS, 30 * IN_MILLISECONDS);
+            AvatarTimer        = 3000;
+            ThunderclapTimer   = 4000;
+            StormboltTimer     = 6000;
+            ResetTimer         = 5000;
+            YellTimer = urand(20000, 30000);
         }
 
         void EnterCombat(Unit* /*who*/)
@@ -69,6 +77,15 @@ public:
             DoScriptText(RAND(YELL_RESPAWN1, YELL_RESPAWN2), me);
         }
 
+        void JustDied(Unit* killer)
+        {
+            if (!killer->ToPlayer() || (killer->ToPlayer() && !killer->ToPlayer()->InBattleground()) || (killer->ToPlayer() && (killer->ToPlayer()->GetQuestStatus(QUEST_THE_BATTLE_OF_ALTERAC_H) != QUEST_STATUS_INCOMPLETE || killer->ToPlayer()->GetQuestStatus(QUEST_THE_BATTLE_OF_ALTERAC_A) != QUEST_STATUS_INCOMPLETE)))
+                return;
+
+            if (Battleground* bg = killer->ToPlayer()->GetBattleground())
+                bg->CastSpellOnTeam(SPELL_COMPLETE_ALTERAC_VALLEY_QUEST, killer->ToPlayer()->GetTeam());
+        }
+
         void UpdateAI(const uint32 diff)
         {
             if (!UpdateVictim())
@@ -77,25 +94,25 @@ public:
             if (AvatarTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_AVATAR);
-                AvatarTimer =  urand(15 * IN_MILLISECONDS, 20 * IN_MILLISECONDS);
+                AvatarTimer =  urand(15000, 20000);
             } else AvatarTimer -= diff;
 
             if (ThunderclapTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_THUNDERCLAP);
-                ThunderclapTimer = urand(5 * IN_MILLISECONDS, 15 * IN_MILLISECONDS);
+                ThunderclapTimer = urand(5000, 15000);
             } else ThunderclapTimer -= diff;
 
             if (StormboltTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_STORMBOLT);
-                StormboltTimer = urand(10 * IN_MILLISECONDS, 25 * IN_MILLISECONDS);
+                StormboltTimer = urand(10000, 25000);
             } else StormboltTimer -= diff;
 
             if (YellTimer <= diff)
             {
                 Talk(YELL_RANDOM);
-                YellTimer = urand(20 * IN_MILLISECONDS, 30 * IN_MILLISECONDS); //20 to 30 seconds
+                YellTimer = urand(20000, 30000); //20 to 30 seconds
             } else YellTimer -= diff;
 
             // check if creature is not outside of building
@@ -106,7 +123,7 @@ public:
                     EnterEvadeMode();
                     Talk(YELL_EVADE);
                 }
-                ResetTimer = 5 * IN_MILLISECONDS;
+                ResetTimer = 5000;
             } else ResetTimer -= diff;
 
             DoMeleeAttackIfReady();

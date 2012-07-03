@@ -1479,8 +1479,6 @@ void Player::Update(uint32 p_time)
 
     CheckDuelDistance(now);
 
-    UpdateAfkReport(now);
-
     if (isCharmed())
         if (Unit* charmer = GetCharmer())
             if (charmer->GetTypeId() == TYPEID_UNIT && charmer->isAlive())
@@ -7019,10 +7017,6 @@ void Player::UpdateHonorFields()
 ///An exact honor value can also be given (overriding the calcs)
 bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, int32 honor, bool pvptoken)
 {
-    // 'Inactive' this aura prevents the player from gaining honor points and battleground tokens
-    if (HasAura(SPELL_AURA_PLAYER_INACTIVE))
-        return false;
-
     uint64 victim_guid = 0;
     uint32 victim_rank = 0;
 
@@ -7125,12 +7119,8 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, int32 honor, bool pvpt
     ApplyModUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, honor, true);
 
     if (InBattleground() && honor > 0)
-    {
         if (Battleground* bg = GetBattleground())
-        {
             bg->UpdatePlayerScore(this, SCORE_BONUS_HONOR, honor, false); //false: prevent looping
-        }
-    }
 
     if (sWorld->getBoolConfig(CONFIG_PVP_TOKEN_ENABLE) && pvptoken)
     {
@@ -18861,16 +18851,6 @@ void Player::SendResetInstanceFailed(uint32 reason, uint32 MapId)
 /***              Update timers                        ***/
 /*********************************************************/
 
-///checks the 15 afk reports per 5 minutes limit
-void Player::UpdateAfkReport(time_t currTime)
-{
-    if (m_bgData.bgAfkReportedTimer <= currTime)
-    {
-        m_bgData.bgAfkReportedCount = 0;
-        m_bgData.bgAfkReportedTimer = currTime+5*MINUTE;
-    }
-}
-
 void Player::UpdateContestedPvP(uint32 diff)
 {
     if (!m_contestedPvPTimer||isInCombat())
@@ -20610,37 +20590,6 @@ bool Player::CanJoinToBattleground() const
         return false;
 
     return true;
-}
-
-bool Player::CanReportAfkDueToLimit()
-{
-    // a player can complain about 15 people per 5 minutes
-    if (m_bgData.bgAfkReportedCount++ >= 15)
-        return false;
-
-    return true;
-}
-
-///This player has been blamed to be inactive in a battleground
-void Player::ReportedAfkBy(Player* reporter)
-{
-    Battleground* bg = GetBattleground();
-    // Battleground also must be in progress!
-    if (!bg || bg != reporter->GetBattleground() || GetTeam() != reporter->GetTeam() || bg->GetStatus() != STATUS_IN_PROGRESS)
-        return;
-
-    // check if player has 'Idle' or 'Inactive' debuff
-    if (m_bgData.bgAfkReporter.find(reporter->GetGUIDLow()) == m_bgData.bgAfkReporter.end() && !HasAura(43680) && !HasAura(43681) && reporter->CanReportAfkDueToLimit())
-    {
-        m_bgData.bgAfkReporter.insert(reporter->GetGUIDLow());
-        // 3 players have to complain to apply debuff
-        if (m_bgData.bgAfkReporter.size() >= 3)
-        {
-            // cast 'Idle' spell
-            CastSpell(this, 43680, true);
-            m_bgData.bgAfkReporter.clear();
-        }
-    }
 }
 
 WorldLocation Player::GetStartPosition() const
@@ -22384,7 +22333,6 @@ bool Player::CanUseBattlegroundObject()
              //i'm not sure if these two are correct, because invisible players should get visible when they click on flag
              !HasStealthAura() &&                           // not stealthed
              !HasInvisibilityAura() &&                      // not invisible
-             !HasAura(SPELL_RECENTLY_DROPPED_FLAG) &&    // can't pickup
              isAlive()                                      // live player
 );
 }

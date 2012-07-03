@@ -32,7 +32,7 @@ BattlegroundAB::BattlegroundAB()
 {
     m_BuffChange = true;
     BgObjects.resize(BG_AB_OBJECT_MAX);
-    BgCreatures.resize(BG_AB_ALL_NODES_COUNT + 5);//+5 for aura triggers
+    BgCreatures.resize(BG_AB_ALL_NODES_COUNT);
 
     StartMessageIds[BG_STARTING_EVENT_FIRST]  = LANG_BG_AB_START_TWO_MINUTES;
     StartMessageIds[BG_STARTING_EVENT_SECOND] = LANG_BG_AB_START_ONE_MINUTE;
@@ -360,31 +360,12 @@ void BattlegroundAB::_NodeOccupied(uint8 node, Team team)
         CastSpellOnTeam(SPELL_AB_QUEST_REWARD_5_BASES, team);
     if (capturedNodes >= 4)
         CastSpellOnTeam(SPELL_AB_QUEST_REWARD_4_BASES, team);
-
-    if (node >= BG_AB_DYNAMIC_NODES_COUNT)//only dynamic nodes, no start points
-        return;
-    Creature* trigger = GetBGCreature(node+7);//0-6 spirit guides
-    if (!trigger)
-       trigger = AddCreature(WORLD_TRIGGER, node+7, team, BG_AB_NodePositions[node][0], BG_AB_NodePositions[node][1], BG_AB_NodePositions[node][2], BG_AB_NodePositions[node][3]);
-
-    //add bonus honor aura trigger creature when node is accupied
-    //cast bonus aura (+50% honor in 25yards)
-    //aura should only apply to players who have accupied the node, set correct faction for trigger
-    if (trigger)
-    {
-        trigger->setFaction(team == ALLIANCE ? 84 : 83);
-        trigger->CastSpell(trigger, SPELL_HONORABLE_DEFENDER_25Y, false);
-    }
 }
 
 void BattlegroundAB::_NodeDeOccupied(uint8 node)
 {
     if (node >= BG_AB_DYNAMIC_NODES_COUNT)
         return;
-
-    //remove bonus honor aura trigger creature when node is lost
-    if (node < BG_AB_DYNAMIC_NODES_COUNT)//only dynamic nodes, no start points
-        DelCreature(node+7);//NULL checks are in DelCreature! 0-6 spirit guides
 
     // Those who are waiting to resurrect at this node are taken to the closest own node's graveyard
     std::vector<uint64> ghost_list = m_ReviveQueue[BgCreatures[node]];
@@ -603,7 +584,7 @@ void BattlegroundAB::Reset()
         m_BannerTimers[i].timer = 0;
     }
 
-    for (uint8 i = 0; i < BG_AB_ALL_NODES_COUNT + 5; ++i)//+5 for aura triggers
+    for (uint8 i = 0; i < BG_AB_ALL_NODES_COUNT; ++i)
         if (BgCreatures[i])
             DelCreature(i);
 }

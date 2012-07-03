@@ -538,20 +538,3 @@ void WorldSession::HandleAreaSpiritHealerQueueOpcode(WorldPacket & recv_data)
     if (bg)
         bg->AddPlayerToResurrectQueue(guid, _player->GetGUID());
 }
-
-void WorldSession::HandleReportPvPAFK(WorldPacket & recv_data)
-{
-    uint64 playerGuid;
-    recv_data >> playerGuid;
-    Player* reportedPlayer = ObjectAccessor::FindPlayer(playerGuid);
-
-    if (!reportedPlayer)
-    {
-        sLog->outDebug(LOG_FILTER_BATTLEGROUND, "WorldSession::HandleReportPvPAFK: player not found");
-        return;
-    }
-
-    sLog->outDebug(LOG_FILTER_BATTLEGROUND, "WorldSession::HandleReportPvPAFK: %s reported %s", _player->GetName(), reportedPlayer->GetName());
-
-    reportedPlayer->ReportedAfkBy(_player);
-}

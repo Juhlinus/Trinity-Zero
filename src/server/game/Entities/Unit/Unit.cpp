@@ -6965,10 +6965,8 @@ int32 Unit::DealHeal(Unit* victim, uint32 addhealth)
         unit = GetOwner();
 
     if (Player* player = unit->ToPlayer())
-    {
         if (Battleground* bg = player->GetBattleground())
             bg->UpdatePlayerScore(player, SCORE_HEALING_DONE, gain);
-    }
 
     return gain;
 }

@@ -19,14 +19,12 @@
 
 enum Spells
 {
-    SPELL_WHIRLWIND                               = 15589,
-    SPELL_WHIRLWIND2                              = 13736,
+    SPELL_WHIRLWIND                               = 13736,
     SPELL_KNOCKDOWN                               = 19128,
     SPELL_FRENZY                                  = 8269,
     SPELL_SWEEPING_STRIKES                        = 18765, // not sure
     SPELL_CLEAVE                                  = 20677, // not sure
-    SPELL_WINDFURY                                = 35886, // not sure
-    SPELL_STORMPIKE                               = 51876  // not sure
+    SPELL_COMPLETE_ALTERAC_VALLEY_QUEST           = 23658,
 };
 
 enum Yells
@@ -34,7 +32,13 @@ enum Yells
     YELL_AGGRO                                    = 0,
     YELL_EVADE                                    = 1,
     YELL_RESPAWN                                  = 2,
-    YELL_RANDOM                                   = 3
+    YELL_RANDOM                                   = 3,
+};
+
+enum Quests
+{
+    QUEST_THE_BATTLE_OF_ALTERAC_H   = 7142,
+    QUEST_THE_BATTLE_OF_ALTERAC_A   = 7141,
 };
 
 class boss_drekthar : public CreatureScript
@@ -47,7 +51,6 @@ public:
         boss_drektharAI(Creature* creature) : ScriptedAI(creature) {}
 
         uint32 WhirlwindTimer;
-        uint32 Whirlwind2Timer;
         uint32 KnockdownTimer;
         uint32 FrenzyTimer;
         uint32 YellTimer;
@@ -55,12 +58,11 @@ public:
 
         void Reset()
         {
-            WhirlwindTimer    = urand(1 * IN_MILLISECONDS, 20 * IN_MILLISECONDS);
-            Whirlwind2Timer   = urand(1 * IN_MILLISECONDS, 20 * IN_MILLISECONDS);
-            KnockdownTimer    = 12 * IN_MILLISECONDS;
-            FrenzyTimer       = 6 * IN_MILLISECONDS;
-            ResetTimer        = 5 * IN_MILLISECONDS;
-            YellTimer         = urand(20 * IN_MILLISECONDS, 30 * IN_MILLISECONDS); //20 to 30 seconds
+            WhirlwindTimer    = urand(1000, 20000);
+            KnockdownTimer    = 12000;
+            FrenzyTimer       = 6000;
+            ResetTimer        = 5000;
+            YellTimer         = urand(20000, 30000); //20 to 30 seconds
         }
 
         void EnterCombat(Unit* /*who*/)
@@ -74,6 +76,15 @@ public:
             Talk(YELL_RESPAWN);
         }
 
+        void JustDied(Unit* killer)
+        {
+            if (!killer->ToPlayer() || (killer->ToPlayer() && !killer->ToPlayer()->InBattleground()) || (killer->ToPlayer() && (killer->ToPlayer()->GetQuestStatus(QUEST_THE_BATTLE_OF_ALTERAC_H) != QUEST_STATUS_INCOMPLETE || killer->ToPlayer()->GetQuestStatus(QUEST_THE_BATTLE_OF_ALTERAC_A) != QUEST_STATUS_INCOMPLETE)))
+                return;
+
+            if (Battleground* bg = killer->ToPlayer()->GetBattleground())
+                bg->CastSpellOnTeam(SPELL_COMPLETE_ALTERAC_VALLEY_QUEST, killer->ToPlayer()->GetTeam());
+        }
+
         void UpdateAI(const uint32 diff)
         {
             if (!UpdateVictim())
@@ -82,31 +93,25 @@ public:
             if (WhirlwindTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_WHIRLWIND);
-                WhirlwindTimer =  urand(8 * IN_MILLISECONDS, 18 * IN_MILLISECONDS);
+                WhirlwindTimer = urand(7000, 25000);
             } else WhirlwindTimer -= diff;
-
-            if (Whirlwind2Timer <= diff)
-            {
-                DoCast(me->getVictim(), SPELL_WHIRLWIND2);
-                Whirlwind2Timer = urand(7 * IN_MILLISECONDS, 25 * IN_MILLISECONDS);
-            } else Whirlwind2Timer -= diff;
 
             if (KnockdownTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_KNOCKDOWN);
-                KnockdownTimer = urand(10 * IN_MILLISECONDS, 15 * IN_MILLISECONDS);
+                KnockdownTimer = urand(10000, 15000);
             } else KnockdownTimer -= diff;
 
             if (FrenzyTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_FRENZY);
-                FrenzyTimer = urand(20 * IN_MILLISECONDS, 30 * IN_MILLISECONDS);
+                FrenzyTimer = urand(20000, 30000);
             } else FrenzyTimer -= diff;
 
             if (YellTimer <= diff)
             {
                 Talk(YELL_RANDOM);
-                YellTimer = urand(20 * IN_MILLISECONDS, 30 * IN_MILLISECONDS); //20 to 30 seconds
+                YellTimer = urand(20000, 30000); //20 to 30 seconds
             } else YellTimer -= diff;
 
             // check if creature is not outside of building
@@ -117,7 +122,7 @@ public:
                     EnterEvadeMode();
                     Talk(YELL_EVADE);
                 }
-                ResetTimer = 5 * IN_MILLISECONDS;
+                ResetTimer = 5000;
             } else ResetTimer -= diff;
 
             DoMeleeAttackIfReady();
