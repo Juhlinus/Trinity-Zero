@@ -40,90 +40,11 @@ enum PaladinSpells
     SPELL_BLESSING_OF_LOWER_CITY_PRIEST          = 37880,
     SPELL_BLESSING_OF_LOWER_CITY_SHAMAN          = 37881,
 
-    SPELL_DIVINE_STORM                           = 53385,
-    SPELL_DIVINE_STORM_DUMMY                     = 54171,
-    SPELL_DIVINE_STORM_HEAL                      = 54172,
-
     SPELL_FORBEARANCE                            = 25771,
     SPELL_AVENGING_WRATH_MARKER                  = 61987,
     SPELL_IMMUNE_SHIELD_MARKER                   = 61988,
 };
 
-// 31850 - Ardent Defender
-class spell_pal_ardent_defender : public SpellScriptLoader
-{
-    public:
-        spell_pal_ardent_defender() : SpellScriptLoader("spell_pal_ardent_defender") { }
-
-        class spell_pal_ardent_defender_AuraScript : public AuraScript
-        {
-            PrepareAuraScript(spell_pal_ardent_defender_AuraScript);
-
-            uint32 absorbPct, healPct;
-
-            enum Spell
-            {
-                PAL_SPELL_ARDENT_DEFENDER_HEAL = 66235,
-            };
-
-            bool Load()
-            {
-                healPct = GetSpellInfo()->Effects[EFFECT_1].CalcValue();
-                absorbPct = GetSpellInfo()->Effects[EFFECT_0].CalcValue();
-                return GetUnitOwner()->GetTypeId() == TYPEID_PLAYER;
-            }
-
-            void CalculateAmount(AuraEffect const* /*aurEff*/, int32 & amount, bool & /*canBeRecalculated*/)
-            {
-                // Set absorbtion amount to unlimited
-                amount = -1;
-            }
-
-            void Absorb(AuraEffect* aurEff, DamageInfo & dmgInfo, uint32 & absorbAmount)
-            {
-                Unit* victim = GetTarget();
-                int32 remainingHealth = victim->GetHealth() - dmgInfo.GetDamage();
-                uint32 allowedHealth = victim->CountPctFromMaxHealth(35);
-                // If damage kills us
-                if (remainingHealth <= 0 && !victim->ToPlayer()->HasSpellCooldown(PAL_SPELL_ARDENT_DEFENDER_HEAL))
-                {
-                    // Cast healing spell, completely avoid damage
-                    absorbAmount = dmgInfo.GetDamage();
-
-                    uint32 defenseSkillValue = victim->GetDefenseSkillValue();
-                    // Max heal when defense skill denies critical hits from raid bosses
-                    // Formula: max defense at level + 140 (raiting from gear)
-                    uint32 reqDefForMaxHeal  = victim->getLevel() * 5 + 140;
-                    float pctFromDefense = (defenseSkillValue >= reqDefForMaxHeal)
-                        ? 1.0f
-                        : float(defenseSkillValue) / float(reqDefForMaxHeal);
-
-                    int32 healAmount = int32(victim->CountPctFromMaxHealth(uint32(healPct * pctFromDefense)));
-                    victim->CastCustomSpell(victim, PAL_SPELL_ARDENT_DEFENDER_HEAL, &healAmount, NULL, NULL, true, NULL, aurEff);
-                    victim->ToPlayer()->AddSpellCooldown(PAL_SPELL_ARDENT_DEFENDER_HEAL, 0, time(NULL) + 120);
-                }
-                else if (remainingHealth < int32(allowedHealth))
-                {
-                    // Reduce damage that brings us under 35% (or full damage if we are already under 35%) by x%
-                    uint32 damageToReduce = (victim->GetHealth() < allowedHealth)
-                        ? dmgInfo.GetDamage()
-                        : allowedHealth - remainingHealth;
-                    absorbAmount = CalculatePctN(damageToReduce, absorbPct);
-                }
-            }
-
-            void Register()
-            {
-                 DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_pal_ardent_defender_AuraScript::CalculateAmount, EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
-                 OnEffectAbsorb += AuraEffectAbsorbFn(spell_pal_ardent_defender_AuraScript::Absorb, EFFECT_0);
-            }
-        };
-
-        AuraScript* GetAuraScript() const
-        {
-            return new spell_pal_ardent_defender_AuraScript();
-        }
-};
 
 class spell_pal_blessing_of_faith : public SpellScriptLoader
 {
@@ -533,14 +454,10 @@ class spell_pal_righteous_defense : public SpellScriptLoader
 
 void AddSC_paladin_spell_scripts()
 {
-    new spell_pal_ardent_defender();
     new spell_pal_blessing_of_faith();
     new spell_pal_blessing_of_sanctuary();
     new spell_pal_guarded_by_the_light();
     new spell_pal_holy_shock();
     new spell_pal_judgement_of_command();
-    new spell_pal_divine_storm();
-    new spell_pal_divine_storm_dummy();
     new spell_pal_lay_on_hands();
-    new spell_pal_righteous_defense();
 }
