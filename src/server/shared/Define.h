@@ -23,6 +23,7 @@
 
 #include <ace/Basic_Types.h>
 #include <ace/ACE_export.h>
+#include <boost/cstdint.hpp>
 
 #include "CompilerDefs.h"
 
@@ -70,13 +71,13 @@
 #  define ATTR_DEPRECATED
 #endif //COMPILER == COMPILER_GNU
 
-typedef ACE_INT64 int64;
-typedef ACE_INT32 int32;
-typedef ACE_INT16 int16;
-typedef ACE_INT8 int8;
-typedef ACE_UINT64 uint64;
-typedef ACE_UINT32 uint32;
-typedef ACE_UINT16 uint16;
-typedef ACE_UINT8 uint8;
+typedef boost::int64_t int64;
+typedef boost::int32_t int32;
+typedef boost::int16_t int16;
+typedef boost::int8_t int8;
+typedef boost::uint64_t uint64;
+typedef boost::uint32_t uint32;
+typedef boost::uint16_t uint16;
+typedef boost::uint8_t uint8;
 
 #endif //TRINITY_DEFINE_H
