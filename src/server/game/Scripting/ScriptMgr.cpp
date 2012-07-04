@@ -1245,9 +1245,9 @@ void ScriptMgr::OnPlayerDelete(uint64 guid)
     FOREACH_SCRIPT(PlayerScript)->OnDelete(guid);
 }
 
-void ScriptMgr::OnPlayerBindToInstance(Player* player, Difficulty difficulty, uint32 mapid, bool permanent)
+void ScriptMgr::OnPlayerBindToInstance(Player* player, uint32 mapid, bool permanent)
 {
-    FOREACH_SCRIPT(PlayerScript)->OnBindToInstance(player, difficulty, mapid, permanent);
+    FOREACH_SCRIPT(PlayerScript)->OnBindToInstance(player, mapid, permanent);
 }
 
 void ScriptMgr::OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 newArea)

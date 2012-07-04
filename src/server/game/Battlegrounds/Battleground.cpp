@@ -1066,11 +1066,6 @@ uint32 Battleground::GetFreeSlotsForTeam(uint32 Team) const
     return 0;
 }
 
-bool Battleground::HasFreeSlots() const
-{
-    return GetPlayersSize() < GetMaxPlayers();
-}
-
 void Battleground::UpdatePlayerScore(Player* Source, uint32 type, uint32 value, bool doAddHonor)
 {
     //this procedure is called from virtual function implemented in bg subclass
@@ -1096,9 +1091,14 @@ void Battleground::UpdatePlayerScore(Player* Source, uint32 type, uint32 value, 
             else
                 itr->second->BonusHonor += value;
             break;
+        case SCORE_DAMAGE_DONE:                             // Damage Done
+            itr->second->DamageDone += value;
+            break;
+        case SCORE_HEALING_DONE:                            // Healing Done
+            itr->second->HealingDone += value;
+            break;
         default:
-            sLog->outError("Battleground::UpdatePlayerScore: unknown score type (%u) for BG (map: %u, instance id: %u)!",
-                type, m_MapId, m_InstanceID);
+            sLog->outError("Battleground::UpdatePlayerScore: unknown score type (%u) for BG (map: %u, instance id: %u)!", type, m_MapId, m_InstanceID);
             break;
     }
 }
@@ -1107,11 +1107,8 @@ void Battleground::AddPlayerToResurrectQueue(uint64 npc_guid, uint64 player_guid
 {
     m_ReviveQueue[npc_guid].push_back(player_guid);
 
-    Player* player = ObjectAccessor::FindPlayer(player_guid);
-    if (!player)
-        return;
-
-    player->CastSpell(player, SPELL_WAITING_FOR_RESURRECT, true);
+    if (Player* player = ObjectAccessor::FindPlayer(player_guid))
+        player->CastSpell(player, SPELL_WAITING_FOR_RESURRECT, true);
 }
 
 void Battleground::RemovePlayerFromResurrectQueue(uint64 player_guid)
@@ -1143,13 +1140,10 @@ bool Battleground::AddObject(uint32 type, uint32 entry, float x, float y, float 
     // and when loading it (in go::LoadFromDB()), a new guid would be assigned to the object, and a new object would be created
     // So we must create it specific for this instance
     GameObject* go = new GameObject;
-    if (!go->Create(sObjectMgr->GenerateLowGuid(HIGHGUID_GAMEOBJECT), entry, GetBgMap(),
-        PHASEMASK_NORMAL, x, y, z, o, rotation0, rotation1, rotation2, rotation3, 100, GO_STATE_READY))
+    if (!go->Create(sObjectMgr->GenerateLowGuid(HIGHGUID_GAMEOBJECT), entry, GetBgMap(), PHASEMASK_NORMAL, x, y, z, o, rotation0, rotation1, rotation2, rotation3, 100, GO_STATE_READY))
     {
-        sLog->outErrorDb("Battleground::AddObject: cannot create gameobject (entry: %u) for BG (map: %u, instance id: %u)!",
-                entry, m_MapId, m_InstanceID);
-        sLog->outError("Battleground::AddObject: cannot create gameobject (entry: %u) for BG (map: %u, instance id: %u)!",
-                entry, m_MapId, m_InstanceID);
+        sLog->outErrorDb("Battleground::AddObject: cannot create gameobject (entry: %u) for BG (map: %u, instance id: %u)!", entry, m_MapId, m_InstanceID);
+        sLog->outError("Battleground::AddObject: cannot create gameobject (entry: %u) for BG (map: %u, instance id: %u)!", entry, m_MapId, m_InstanceID);
         delete go;
         return false;
     }
@@ -1171,7 +1165,6 @@ bool Battleground::AddObject(uint32 type, uint32 entry, float x, float y, float 
     data.rotation2      = rotation2;
     data.rotation3      = rotation3;
     data.spawntimesecs  = respawnTime;
-    data.spawnMask      = 1;
     data.animprogress   = 100;
     data.go_state       = 1;
 */

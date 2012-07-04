@@ -142,7 +142,7 @@ PlayerTaxi::PlayerTaxi()
     memset(m_taximask, 0, sizeof(m_taximask));
 }
 
-void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level)
+void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 /*level*/)
 {
     // race specific initial known nodes: capital and taxi hub masks
     switch (race)
@@ -164,9 +164,6 @@ void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level
         case ALLIANCE: SetTaximaskNode(100); break;
         case HORDE:    SetTaximaskNode(99);  break;
     }
-    // level dependent taxi hubs
-    if (level >= 68)
-        SetTaximaskNode(213);                               //Shattered Sun Staging Area
 }
 
 void PlayerTaxi::LoadTaxiMask(const char* data)
@@ -175,26 +172,19 @@ void PlayerTaxi::LoadTaxiMask(const char* data)
 
     uint8 index;
     Tokens::iterator iter;
-    for (iter = tokens.begin(), index = 0;
-        (index < TaxiMaskSize) && (iter != tokens.end()); ++iter, ++index)
-    {
+    for (iter = tokens.begin(), index = 0; (index < TaxiMaskSize) && (iter != tokens.end()); ++iter, ++index)
         // load and set bits only for existed taxi nodes
         m_taximask[index] = sTaxiNodesMask[index] & uint32(atol(*iter));
-    }
 }
 
 void PlayerTaxi::AppendTaximaskTo(ByteBuffer& data, bool all)
 {
     if (all)
-    {
         for (uint8 i=0; i<TaxiMaskSize; i++)
             data << uint32(sTaxiNodesMask[i]);              // all existed nodes
-    }
     else
-    {
         for (uint8 i=0; i<TaxiMaskSize; i++)
             data << uint32(m_taximask[i]);                  // known nodes
-    }
 }
 
 bool PlayerTaxi::LoadTaxiDestinationsFromString(const std::string& values, uint32 team)
@@ -431,7 +421,9 @@ inline void KillRewarder::_InitGroupData()
     {
         // 2. In case when player is in group, initialize variables necessary for group calculations:
         for (GroupReference* itr = _group->GetFirstMember(); itr != NULL; itr = itr->next())
+        {
             if (Player* member = itr->getSource())
+            {
                 if (member->isAlive() && member->IsAtGroupRewardDistance(_victim))
                 {
                     const uint8 lvl = member->getLevel();
@@ -448,6 +440,9 @@ inline void KillRewarder::_InitGroupData()
                     if (_victim->getLevel() > grayLevel && (!_maxNotGrayMember || _maxNotGrayMember->getLevel() < lvl))
                         _maxNotGrayMember = member;
                 }
+            }
+        }
+
         // 2.5. _isFullXP - flag identifying that for all group members victim is not gray,
         //      so 100% XP will be rewarded (50% otherwise).
         _isFullXP = _maxNotGrayMember && (_maxLevel == _maxNotGrayMember->getLevel());
@@ -462,7 +457,7 @@ inline void KillRewarder::_InitXP(Player* player)
     // XP is given:
     // * otherwise, not in PvP;
     // * not if killer is on vehicle.
-    if ((!_isPvP))
+    if (!_isPvP)
         _xp = Trinity::XP::Gain(player, _victim);
 }
 
@@ -750,8 +745,6 @@ Player::Player(WorldSession* session): Unit(true), m_reputationMgr(this)
 
     m_HomebindTimer = 0;
     m_InstanceValid = true;
-    m_dungeonDifficulty = DUNGEON_DIFFICULTY_NORMAL;
-    m_raidDifficulty = RAID_DIFFICULTY_10MAN_NORMAL;
 
     m_lastPotionId = 0;
 
@@ -798,8 +791,6 @@ Player::Player(WorldSession* session): Unit(true), m_reputationMgr(this)
     m_ControlledByPlayer = true;
 
     sWorld->IncreasePlayerCount();
-
-    m_ChampioningFaction = 0;
 
     for (uint8 i = 0; i < MAX_POWERS; ++i)
         m_powerFraction[i] = 0;
@@ -853,9 +844,8 @@ void Player::CleanupsBeforeDelete(bool finalCleanup)
         m_transport->RemovePassenger(this);
 
     // clean up player-instance binds, may unload some instance saves
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
-        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
-            itr->second.save->RemovePlayer(this);
+    for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
+        itr->second.save->RemovePlayer(this);
 }
 
 bool Player::Create(uint32 guidlow, CharacterCreateInfo* createInfo)
@@ -1479,6 +1469,8 @@ void Player::Update(uint32 p_time)
 
     CheckDuelDistance(now);
 
+    CheckMeetingStoneQueue(now);
+
     if (isCharmed())
         if (Unit* charmer = GetCharmer())
             if (charmer->GetTypeId() == TYPEID_UNIT && charmer->isAlive())
@@ -1689,67 +1681,6 @@ void Player::Update(uint32 p_time)
         }
         else
             _pendingBindTimer -= p_time;
-    }
-
-    if (IsInMeetingStoneQueue())
-        timeInMeetingStoneQueue += p_time;
-    else
-        timeInMeetingStoneQueue = 0;
-
-    //! "As time goes on and you are unable to find a group, the meeting stone will become less picky about who it chooses to group you with."
-    if (IsInMeetingStoneQueue() && GetAreaIdInMeetingStoneQueue() && (timeInMeetingStoneQueue & 60000) == 0)
-    {
-        sLog->outString("As time goes by ...");
-        ChatHandler(this).PSendSysMessage("You are in queue for dungeon %s...", GetMeetingStoneQueueDungeonName(GetAreaIdInMeetingStoneQueue()));
-    }
-
-    if (IsInMeetingStoneQueue())
-    {
-        if (checkForGroupTimer <= p_time)
-        {
-            uint32 dungeonArea = GetAreaIdInMeetingStoneQueue();
-            uint32 mapId = GetAreaEntryByAreaID(dungeonArea)->mapid;
-            std::vector<Player*> playersInQueueForInstance = GetPlayersInMeetingStoneQueueForInstanceId(dungeonArea);
-            for (std::vector<Player*>::const_iterator itr = playersInQueueForInstance.begin(); itr != playersInQueueForInstance.end(); ++itr)
-            {
-                //! Here we iterate through all possibile players that are in the queue, these can be:
-                //  - Groups which are put in queue by their leader;
-                //  - Players that are queueing on their own;
-                //  - 
-                Player* player = (*itr)->ToPlayer();
-                if (Group* group = player->GetGroup())
-                {
-                    //! Only make this work if this player is the leader of the group, else there is a
-                    //! chance we iterate through the same group more than once.
-                    if (group->GetLeaderGUID() == player->GetGUID())
-                    {
-                        for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
-                        {
-                            if (Player* grpMember = itr->getSource())
-                            {
-                                //! We won't invite ourselves to this group if:
-                                //  - One of their members is not in queue for the queue;
-                                //  - The group is full;
-                                //  - Either a groupmember ignored this player or likewise;
-                                if (!grpMember->IsInMeetingStoneQueueForInstanceId(dungeonArea) || group->IsFull() || grpMember->GetSocial()->HasIgnore(GetGUIDLow()) || GetSocial()->HasIgnore(grpMember->GetGUIDLow()))
-                                    break;
-
-                                RemoveFromMeetingStoneQueue();
-                                player->SetGroupInvite(group); // Player is invited to group
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Hier komt code voor wanneer er geen groep is (?)
-                    }
-                }
-            }
-
-            checkForGroupTimer = 5000;
-        }
-        else
-            checkForGroupTimer -= p_time;
     }
 
     // not auto-free ghost from body in instances
@@ -6872,35 +6803,10 @@ void Player::RewardReputation(Unit* victim, float rate)
     if (!Rep)
         return;
 
-    uint32 ChampioningFaction = 0;
-
-    if (GetChampioningFaction())
-    {
-        // support for: Championing - http://www.wowwiki.com/Championing
-
-        Map const* map = GetMap();
-        if (map && map->IsDungeon())
-        {
-            InstanceTemplate const* instance = sObjectMgr->GetInstanceTemplate(map->GetId());
-            if (instance)
-            {
-                AccessRequirement const* pAccessRequirement = sObjectMgr->GetAccessRequirement(map->GetId(), ((InstanceMap*)map)->GetDifficulty());
-                if (pAccessRequirement)
-                {
-                    if (!map->IsRaid() && pAccessRequirement->levelMin == 80)
-                        ChampioningFaction = GetChampioningFaction();
-                }
-            }
-        }
-    }
-
     // Favored reputation increase START
     uint32 zone = GetZoneId();
     uint32 team = GetTeam();
     float favored_rep_mult = 0;
-
-    if ((HasAura(32096) || HasAura(32098)) && (zone == 3483 || zone == 3562 || zone == 3836 || zone == 3713 || zone == 3714)) favored_rep_mult = 0.25; // Thrallmar's Favor and Honor Hold's Favor
-    else if (HasAura(30754) && (Rep->RepFaction1 == 609 || Rep->RepFaction2 == 609) && !ChampioningFaction)                   favored_rep_mult = 0.25; // Cenarion Favor
 
     if (favored_rep_mult > 0) favored_rep_mult *= 2; // Multiplied by 2 because the reputation is divided by 2 for some reason (See "donerep1 / 2" and "donerep2 / 2") -- if you know why this is done, please update/explain :)
     // Favored reputation increase END
@@ -6909,13 +6815,13 @@ void Player::RewardReputation(Unit* victim, float rate)
 
     if (Rep->RepFaction1 && (!Rep->TeamDependent || team == ALLIANCE))
     {
-        int32 donerep1 = CalculateReputationGain(victim->getLevel(), Rep->RepValue1, ChampioningFaction ? ChampioningFaction : Rep->RepFaction1, false);
+        int32 donerep1 = CalculateReputationGain(victim->getLevel(), Rep->RepValue1, Rep->RepFaction1, false);
         donerep1 = int32(donerep1*(rate + favored_rep_mult));
 
         if (recruitAFriend)
             donerep1 = int32(donerep1 * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
 
-        FactionEntry const* factionEntry1 = sFactionStore.LookupEntry(ChampioningFaction ? ChampioningFaction : Rep->RepFaction1);
+        FactionEntry const* factionEntry1 = sFactionStore.LookupEntry(Rep->RepFaction1);
         uint32 current_reputation_rank1 = GetReputationMgr().GetRank(factionEntry1);
         if (factionEntry1 && current_reputation_rank1 <= Rep->ReputationMaxCap1)
             GetReputationMgr().ModifyReputation(factionEntry1, donerep1);
@@ -6923,13 +6829,13 @@ void Player::RewardReputation(Unit* victim, float rate)
 
     if (Rep->RepFaction2 && (!Rep->TeamDependent || team == HORDE))
     {
-        int32 donerep2 = CalculateReputationGain(victim->getLevel(), Rep->RepValue2, ChampioningFaction ? ChampioningFaction : Rep->RepFaction2, false);
+        int32 donerep2 = CalculateReputationGain(victim->getLevel(), Rep->RepValue2, Rep->RepFaction2, false);
         donerep2 = int32(donerep2*(rate + favored_rep_mult));
 
         if (recruitAFriend)
             donerep2 = int32(donerep2 * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
 
-        FactionEntry const* factionEntry2 = sFactionStore.LookupEntry(ChampioningFaction ? ChampioningFaction : Rep->RepFaction2);
+        FactionEntry const* factionEntry2 = sFactionStore.LookupEntry(Rep->RepFaction2);
         uint32 current_reputation_rank2 = GetReputationMgr().GetRank(factionEntry2);
         if (factionEntry2 && current_reputation_rank2 <= Rep->ReputationMaxCap2)
             GetReputationMgr().ModifyReputation(factionEntry2, donerep2);
@@ -16007,16 +15913,6 @@ bool Player::LoadFromDB(uint32 guid, SQLQueryHolder *holder)
     Relocate(fields[12].GetFloat(), fields[13].GetFloat(), fields[14].GetFloat(), fields[16].GetFloat());
     uint32 mapId = fields[15].GetUInt16();
     uint32 instanceId = fields[58].GetUInt32();
-
-    uint32 dungeonDiff = fields[38].GetUInt8() & 0x0F;
-    if (dungeonDiff >= MAX_DUNGEON_DIFFICULTY)
-        dungeonDiff = DUNGEON_DIFFICULTY_NORMAL;
-    uint32 raidDiff = (fields[38].GetUInt8() >> 4) & 0x0F;
-    if (raidDiff >= MAX_RAID_DIFFICULTY)
-        raidDiff = RAID_DIFFICULTY_10MAN_NORMAL;
-    SetDungeonDifficulty(Difficulty(dungeonDiff));          // may be changed in _LoadGroup
-    SetRaidDifficulty(Difficulty(raidDiff));                // may be changed in _LoadGroup
-
     std::string taxi_nodes = fields[37].GetString();
 
 #define RelocateToHomebind(){ mapId = m_homebindMapId; instanceId = 0; Relocate(m_homebindX, m_homebindY, m_homebindZ); }
@@ -16234,7 +16130,6 @@ bool Player::LoadFromDB(uint32 guid, SQLQueryHolder *holder)
     }
 
     SetMap(map);
-    StoreRaidMapDifficulty();
 
     // randomize first save time in range [CONFIG_INTERVAL_SAVE] around [CONFIG_INTERVAL_SAVE]
     // this must help in case next save after mass player load after server startup
@@ -17262,24 +17157,16 @@ void Player::_LoadGroup(PreparedQueryResult result)
         {
             uint8 subgroup = group->GetMemberGroup(GetGUID());
             SetGroup(group, subgroup);
-            if (getLevel() >= LEVELREQUIREMENT_HEROIC)
-            {
-                // the group leader may change the instance difficulty while the player is offline
-                SetDungeonDifficulty(group->GetDungeonDifficulty());
-                SetRaidDifficulty(group->GetRaidDifficulty());
-            }
         }
     }
 }
 
 void Player::_LoadBoundInstances(PreparedQueryResult result)
 {
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
-        m_boundInstances[i].clear();
-
+    m_boundInstances.clear();
     Group* group = GetGroup();
 
-    //QueryResult* result = CharacterDatabase.PQuery("SELECT id, permanent, map, difficulty, resettime FROM character_instance LEFT JOIN instance ON instance = id WHERE guid = '%u'", GUID_LOPART(m_guid));
+    //QueryResult* result = CharacterDatabase.PQuery("SELECT id, permanent, map, resettime FROM character_instance LEFT JOIN instance ON instance = id WHERE guid = '%u'", GUID_LOPART(m_guid));
     if (result)
     {
         do
@@ -17289,7 +17176,6 @@ void Player::_LoadBoundInstances(PreparedQueryResult result)
             bool perm = fields[1].GetBool();
             uint32 mapId = fields[2].GetUInt16();
             uint32 instanceId = fields[0].GetUInt32();
-            uint8 difficulty = fields[3].GetUInt8();
 
             time_t resetTime = time_t(fields[4].GetUInt32());
             // the resettime for normal instances is only saved when the InstanceSave is unloaded
@@ -17304,63 +17190,43 @@ void Player::_LoadBoundInstances(PreparedQueryResult result)
                 sLog->outError("_LoadBoundInstances: player %s(%d) has bind to not existed or not dungeon map %d", GetName(), GetGUIDLow(), mapId);
                 deleteInstance = true;
             }
-            else if (difficulty >= MAX_DIFFICULTY)
-            {
-                sLog->outError("_LoadBoundInstances: player %s(%d) has bind to not existed difficulty %d instance for map %u", GetName(), GetGUIDLow(), difficulty, mapId);
-                deleteInstance = true;
-            }
-            else
-            {
-                MapDifficulty const* mapDiff = GetMapDifficultyData(mapId, Difficulty(difficulty));
-                if (!mapDiff)
-                {
-                    sLog->outError("_LoadBoundInstances: player %s(%d) has bind to not existed difficulty %d instance for map %u", GetName(), GetGUIDLow(), difficulty, mapId);
-                    deleteInstance = true;
-                }
-                else if (!perm && group)
-                {
-                    sLog->outError("_LoadBoundInstances: player %s(%d) is in group %d but has a non-permanent character bind to map %d, %d, %d", GetName(), GetGUIDLow(), GUID_LOPART(group->GetGUID()), mapId, instanceId, difficulty);
-                    deleteInstance = true;
-                }
-            }
 
             if (deleteInstance)
             {
                 PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_INSTANCE_BY_INSTANCE_GUID);
-
                 stmt->setUInt32(0, GetGUIDLow());
                 stmt->setUInt32(1, instanceId);
-
                 CharacterDatabase.Execute(stmt);
-
                 continue;
             }
 
             // since non permanent binds are always solo bind, they can always be reset
-            if (InstanceSave* save = sInstanceSaveMgr->AddInstanceSave(mapId, instanceId, Difficulty(difficulty), resetTime, !perm, true))
-               BindToInstance(save, perm, true);
+            if (InstanceSave* save = sInstanceSaveMgr->AddInstanceSave(mapId, instanceId, resetTime, !perm, true))
+                BindToInstance(save, perm, true);
         }
         while (result->NextRow());
     }
 }
 
-InstancePlayerBind* Player::GetBoundInstance(uint32 mapid, Difficulty difficulty)
+//! TrinityZero note: what are we going to do here, GetDownscaledMapDifficultyData is for WOTLK
+//! but we still have to use saved instance data afaik...
+InstancePlayerBind* Player::GetBoundInstance(uint32 mapid)
 {
     // some instances only have one difficulty
-    MapDifficulty const* mapDiff = GetDownscaledMapDifficultyData(mapid, difficulty);
+    /*MapDifficulty const* mapDiff = GetDownscaledMapDifficultyData(mapid, difficulty);
     if (!mapDiff)
         return NULL;
 
     BoundInstancesMap::iterator itr = m_boundInstances[difficulty].find(mapid);
     if (itr != m_boundInstances[difficulty].end())
         return &itr->second;
-    else
+    else*/
         return NULL;
 }
 
 InstanceSave* Player::GetInstanceSave(uint32 mapid, bool raid)
 {
-    InstancePlayerBind* pBind = GetBoundInstance(mapid, GetDifficulty(raid));
+    InstancePlayerBind* pBind = GetBoundInstance(mapid);
     InstanceSave* pSave = pBind ? pBind->save : NULL;
     if (!pBind || !pBind->perm)
         if (Group* group = GetGroup())
@@ -17370,15 +17236,15 @@ InstanceSave* Player::GetInstanceSave(uint32 mapid, bool raid)
     return pSave;
 }
 
-void Player::UnbindInstance(uint32 mapid, Difficulty difficulty, bool unload)
+void Player::UnbindInstance(uint32 mapid, bool unload)
 {
-    BoundInstancesMap::iterator itr = m_boundInstances[difficulty].find(mapid);
-    UnbindInstance(itr, difficulty, unload);
+    BoundInstancesMap::iterator itr = m_boundInstances.find(mapid);
+    UnbindInstance(itr, unload);
 }
 
-void Player::UnbindInstance(BoundInstancesMap::iterator &itr, Difficulty difficulty, bool unload)
+void Player::UnbindInstance(BoundInstancesMap::iterator &itr, bool unload)
 {
-    if (itr != m_boundInstances[difficulty].end())
+    if (itr != m_boundInstances.end())
     {
         if (!unload)
         {
@@ -17394,7 +17260,7 @@ void Player::UnbindInstance(BoundInstancesMap::iterator &itr, Difficulty difficu
             GetSession()->SendCalendarRaidLockout(itr->second.save, false);
 
         itr->second.save->RemovePlayer(this);               // save can become invalid
-        m_boundInstances[difficulty].erase(itr++);
+        m_boundInstances.erase(itr++);
     }
 }
 
@@ -17402,7 +17268,7 @@ InstancePlayerBind* Player::BindToInstance(InstanceSave* save, bool permanent, b
 {
     if (save)
     {
-        InstancePlayerBind& bind = m_boundInstances[save->GetDifficulty()][save->GetMapId()];
+        InstancePlayerBind& bind = m_boundInstances[save->GetMapId()];
         if (bind.save)
         {
             // update the save when the group kills a boss
@@ -17444,8 +17310,8 @@ InstancePlayerBind* Player::BindToInstance(InstanceSave* save, bool permanent, b
         bind.save = save;
         bind.perm = permanent;
         if (!load)
-            sLog->outDebug(LOG_FILTER_MAPS, "Player::BindToInstance: %s(%d) is now bound to map %d, instance %d, difficulty %d", GetName(), GetGUIDLow(), save->GetMapId(), save->GetInstanceId(), save->GetDifficulty());
-        sScriptMgr->OnPlayerBindToInstance(this, save->GetDifficulty(), save->GetMapId(), permanent);
+            sLog->outDebug(LOG_FILTER_MAPS, "Player::BindToInstance: %s(%d) is now bound to map %d, instance %d", GetName(), GetGUIDLow(), save->GetMapId(), save->GetInstanceId());
+        sScriptMgr->OnPlayerBindToInstance(this, save->GetMapId(), permanent);
         return &bind;
     }
     else
@@ -17477,23 +17343,20 @@ void Player::SendRaidInfo()
 
     time_t now = time(NULL);
 
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+    for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
     {
-        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
+        if (itr->second.perm)
         {
-            if (itr->second.perm)
-            {
-                InstanceSave* save = itr->second.save;
-                data << uint32(save->GetMapId());           // map id
-                data << uint32(save->GetDifficulty());      // difficulty
-                data << uint64(save->GetInstanceId());      // instance id
-                data << uint8(1);                           // expired = 0
-                data << uint8(0);                           // extended = 1
-                data << uint32(save->GetResetTime() - now); // reset time
-                ++counter;
-            }
+            InstanceSave* save = itr->second.save;
+            data << uint32(save->GetMapId());           // map id
+            data << uint64(save->GetInstanceId());      // instance id
+            data << uint8(1);                           // expired = 0
+            data << uint8(0);                           // extended = 1
+            data << uint32(save->GetResetTime() - now); // reset time
+            ++counter;
         }
     }
+
     data.put<uint32>(p_counter, counter);
     GetSession()->SendPacket(&data);
 }
@@ -17506,15 +17369,12 @@ void Player::SendSavedInstances()
     bool hasBeenSaved = false;
     WorldPacket data;
 
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+    for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
     {
-        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
+        if (itr->second.perm)                               // only permanent binds are sent
         {
-            if (itr->second.perm)                               // only permanent binds are sent
-            {
-                hasBeenSaved = true;
-                break;
-            }
+            hasBeenSaved = true;
+            break;
         }
     }
 
@@ -17526,16 +17386,13 @@ void Player::SendSavedInstances()
     if (!hasBeenSaved)
         return;
 
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+    for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
     {
-        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
+        if (itr->second.perm)
         {
-            if (itr->second.perm)
-            {
-                data.Initialize(SMSG_UPDATE_LAST_INSTANCE);
-                data << uint32(itr->second.save->GetMapId());
-                GetSession()->SendPacket(&data);
-            }
+            data.Initialize(SMSG_UPDATE_LAST_INSTANCE);
+            data << uint32(itr->second.save->GetMapId());
+            GetSession()->SendPacket(&data);
         }
     }
 }
@@ -17546,20 +17403,15 @@ void Player::ConvertInstancesToGroup(Player* player, Group* group, bool switchLe
     // copy all binds to the group, when changing leader it's assumed the character
     // will not have any solo binds
 
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+    for (BoundInstancesMap::iterator itr = player->m_boundInstances.begin(); itr != player->m_boundInstances.end();)
     {
-        for (BoundInstancesMap::iterator itr = player->m_boundInstances[i].begin(); itr != player->m_boundInstances[i].end();)
-        {
-            group->BindToInstance(itr->second.save, itr->second.perm, false);
-            // permanent binds are not removed
-            if (switchLeader && !itr->second.perm)
-            {
-                // increments itr in call
-                player->UnbindInstance(itr, Difficulty(i), false);
-            }
-            else
-                ++itr;
-        }
+        group->BindToInstance(itr->second.save, itr->second.perm, false);
+        // permanent binds are not removed
+        if (switchLeader && !itr->second.perm)
+            // increments itr in call
+            player->UnbindInstance(itr, false);
+        else
+            ++itr;
     }
 }
 
@@ -17609,16 +17461,14 @@ bool Player::Satisfy(AccessRequirement const* ar, uint32 target_map, bool report
         if (leaderGuid != GetGUID())
             leader = ObjectAccessor::FindPlayer(leaderGuid);
 
-        Difficulty target_difficulty = GetDifficulty(mapEntry->IsRaid());
-        MapDifficulty const* mapDiff = GetDownscaledMapDifficultyData(target_map, target_difficulty);
         if (LevelMin || LevelMax || missingItem || missingQuest)
         {
             if (report)
             {
                 if (missingQuest && !ar->questFailedText.empty())
                     ChatHandler(GetSession()).PSendSysMessage("%s", ar->questFailedText.c_str());
-                else if (mapDiff->hasErrorMessage)
-                    SendTransferAborted(target_map, TRANSFER_ABORT_DIFFICULTY, target_difficulty);
+                //else if (mapDiff->hasErrorMessage)
+                //    SendTransferAborted(target_map, TRANSFER_ABORT_DIFFICULTY, target_difficulty);
                 else if (missingItem)
                     GetSession()->SendAreaTriggerMessage(GetSession()->GetTrinityString(LANG_LEVEL_MINREQUIRED_AND_ITEM), LevelMin, sObjectMgr->GetItemTemplate(missingItem)->Name1.c_str());
                 else if (LevelMin)
@@ -17758,7 +17608,6 @@ void Player::SaveToDB(bool create /*=false*/)
         stmt->setUInt32(index++, GetUInt32Value(PLAYER_FLAGS));
         stmt->setUInt16(index++, (uint16)GetMapId());
         stmt->setUInt32(index++, (uint32)GetInstanceId());
-        stmt->setUInt8(index++, (uint8(GetDungeonDifficulty()) | uint8(GetRaidDifficulty()) << 4));
         stmt->setFloat(index++, finiteAlways(GetPositionX()));
         stmt->setFloat(index++, finiteAlways(GetPositionY()));
         stmt->setFloat(index++, finiteAlways(GetPositionZ()));
@@ -17854,7 +17703,6 @@ void Player::SaveToDB(bool create /*=false*/)
         {
             stmt->setUInt16(index++, (uint16)GetMapId());
             stmt->setUInt32(index++, (uint32)GetInstanceId());
-            stmt->setUInt8(index++, (uint8(GetDungeonDifficulty()) | uint8(GetRaidDifficulty()) << 4));
             stmt->setFloat(index++, finiteAlways(GetPositionX()));
             stmt->setFloat(index++, finiteAlways(GetPositionY()));
             stmt->setFloat(index++, finiteAlways(GetPositionZ()));
@@ -17864,7 +17712,6 @@ void Player::SaveToDB(bool create /*=false*/)
         {
             stmt->setUInt16(index++, (uint16)GetTeleportDest().GetMapId());
             stmt->setUInt32(index++, (uint32)0);
-            stmt->setUInt8(index++, (uint8(GetDungeonDifficulty()) | uint8(GetRaidDifficulty()) << 4));
             stmt->setFloat(index++, finiteAlways(GetTeleportDest().GetPositionX()));
             stmt->setFloat(index++, finiteAlways(GetTeleportDest().GetPositionY()));
             stmt->setFloat(index++, finiteAlways(GetTeleportDest().GetPositionZ()));
@@ -18751,26 +18598,6 @@ void Player::SendExplorationExperience(uint32 Area, uint32 Experience)
     GetSession()->SendPacket(&data);
 }
 
-void Player::SendDungeonDifficulty(bool IsInGroup)
-{
-    uint8 val = 0x00000001;
-    WorldPacket data(MSG_SET_DUNGEON_DIFFICULTY, 12);
-    data << (uint32)GetDungeonDifficulty();
-    data << uint32(val);
-    data << uint32(IsInGroup);
-    GetSession()->SendPacket(&data);
-}
-
-void Player::SendRaidDifficulty(bool IsInGroup, int32 forcedDifficulty)
-{
-    uint8 val = 0x00000001;
-    WorldPacket data(MSG_SET_RAID_DIFFICULTY, 12);
-    data << uint32(forcedDifficulty == -1 ? GetRaidDifficulty() : forcedDifficulty);
-    data << uint32(val);
-    data << uint32(IsInGroup);
-    GetSession()->SendPacket(&data);
-}
-
 void Player::SendResetFailedNotify(uint32 mapid)
 {
     WorldPacket data(SMSG_RESET_FAILED_NOTIFY, 4);
@@ -18781,12 +18608,9 @@ void Player::SendResetFailedNotify(uint32 mapid)
 /// Reset all solo instances and optionally send a message on success for each
 void Player::ResetInstances(uint8 method, bool isRaid)
 {
-    // method can be INSTANCE_RESET_ALL, INSTANCE_RESET_CHANGE_DIFFICULTY, INSTANCE_RESET_GROUP_JOIN
+    // method can be INSTANCE_RESET_ALL or INSTANCE_RESET_GROUP_JOIN
 
-    // we assume that when the difficulty changes, all instances that can be reset will be
-    Difficulty diff = GetDifficulty(isRaid);
-
-    for (BoundInstancesMap::iterator itr = m_boundInstances[diff].begin(); itr != m_boundInstances[diff].end();)
+    for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end();)
     {
         InstanceSave* p = itr->second.save;
         const MapEntry* entry = sMapStore.LookupEntry(itr->first);
@@ -18799,7 +18623,7 @@ void Player::ResetInstances(uint8 method, bool isRaid)
         if (method == INSTANCE_RESET_ALL)
         {
             // the "reset all instances" method can only reset normal maps
-            if (entry->map_type == MAP_RAID || diff == DUNGEON_DIFFICULTY_HEROIC)
+            if (entry->map_type == MAP_RAID)
             {
                 ++itr;
                 continue;
@@ -18809,18 +18633,20 @@ void Player::ResetInstances(uint8 method, bool isRaid)
         // if the map is loaded, reset it
         Map* map = sMapMgr->FindMap(p->GetMapId(), p->GetInstanceId());
         if (map && map->IsDungeon())
+        {
             if (!((InstanceMap*)map)->Reset(method))
             {
                 ++itr;
                 continue;
             }
+        }
 
         // since this is a solo instance there should not be any players inside
-        if (method == INSTANCE_RESET_ALL || method == INSTANCE_RESET_CHANGE_DIFFICULTY)
+        if (method == INSTANCE_RESET_ALL)
             SendResetInstanceSuccess(p->GetMapId());
 
         p->DeleteFromDB();
-        m_boundInstances[diff].erase(itr++);
+        m_boundInstances.erase(itr++);
 
         // the following should remove the instance save from the manager and delete it as well
         p->RemovePlayer(this);
@@ -20983,12 +20809,6 @@ void Player::SendInitialPacketsBeforeAddToMap()
 
     SendTalentsInfoData(false);
 
-    // SMSG_INSTANCE_DIFFICULTY
-    data.Initialize(SMSG_INSTANCE_DIFFICULTY, 4+4);
-    data << uint32(GetMap()->GetDifficulty());
-    data << uint32(0);
-    GetSession()->SendPacket(&data);
-
     SendInitialSpells();
 
     data.Initialize(SMSG_SEND_UNLEARN_SPELLS, 4);
@@ -21061,18 +20881,6 @@ void Player::SendInitialPacketsAfterAddToMap()
     SendAurasForTarget(this);
     SendEnchantmentDurations();                             // must be after add to map
     SendItemDurations();                                    // must be after add to map
-
-    // raid downscaling - send difficulty to player
-    if (GetMap()->IsRaid())
-    {
-        if (GetMap()->GetDifficulty() != GetRaidDifficulty())
-        {
-            StoreRaidMapDifficulty();
-            SendRaidDifficulty(GetGroup() != NULL, GetStoredRaidDifficulty());
-        }
-    }
-    else if (GetRaidDifficulty() != GetStoredRaidDifficulty())
-        SendRaidDifficulty(GetGroup() != NULL);
 }
 
 void Player::SendUpdateToOutOfRangeGroupMembers()
@@ -21088,26 +20896,7 @@ void Player::SendUpdateToOutOfRangeGroupMembers()
         pet->ResetAuraUpdateMaskForRaid();
 }
 
-void Player::SendTransferAborted(uint32 mapid, TransferAbortReason reason, uint8 arg)
-{
-    WorldPacket data(SMSG_TRANSFER_ABORTED, 4+2);
-    data << uint32(mapid);
-    data << uint8(reason);                                 // transfer abort reason
-    switch (reason)
-    {
-        case TRANSFER_ABORT_INSUF_EXPAN_LVL:
-        case TRANSFER_ABORT_DIFFICULTY:
-        case TRANSFER_ABORT_UNIQUE_MESSAGE:
-            // these are the ONLY cases that have an extra argument in the packet!!!
-            data << uint8(arg);
-            break;
-        default:
-            break;
-    }
-    GetSession()->SendPacket(&data);
-}
-
-void Player::SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time)
+void Player::SendInstanceResetWarning(uint32 mapid, uint32 time)
 {
     // type of warning, based on the time remaining until reset
     uint32 type;
@@ -21123,7 +20912,6 @@ void Player::SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint3
     WorldPacket data(SMSG_RAID_INSTANCE_MESSAGE, 4+4+4+4);
     data << uint32(type);
     data << uint32(mapid);
-    data << uint32(difficulty);                             // difficulty
     data << uint32(time);
     if (type == RAID_INSTANCE_WELCOME)
     {
@@ -23954,4 +23742,80 @@ void Player::RemoveFromMeetingStoneQueue()
         meetingStoneQueue.erase(itr);
         timeInMeetingStoneQueue = 0;
     }
+}
+
+void Player::CheckMeetingStoneQueue(time_t currTime)
+{
+    bool foundGroup = false;
+    if (IsInMeetingStoneQueue())
+    {
+        timeInMeetingStoneQueue += currTime;
+        uint32 dungeonArea = GetAreaIdInMeetingStoneQueue();
+        uint32 mapId = GetAreaEntryByAreaID(dungeonArea)->mapid;
+        std::string dungeonName = dungeonArea ? GetMeetingStoneQueueDungeonName(dungeonArea) : "<unkown>";
+        std::vector<Player*> playersInQueueForInstance = GetPlayersInMeetingStoneQueueForInstanceId(dungeonArea);
+
+        //! "As time goes on and you are unable to find a group, the meeting stone will become less picky about who it chooses to group you with."
+        if ((timeInMeetingStoneQueue & 30000) == 0)
+        {
+            sLog->outString("As time goes on ...");
+            ChatHandler(this).PSendSysMessage("You are in queue to find a group for dungeon %s...", dungeonName);
+        }
+
+        for (std::vector<Player*>::const_iterator itr = playersInQueueForInstance.begin(); itr != playersInQueueForInstance.end(); ++itr)
+        {
+            //! Here we iterate through all possibile players that are in the queue, these can be:
+            //  - Groups which are put in queue by their leader;
+            //  - Players that are queueing on their own;
+            //  - 
+            if (Player* playerInQ = (*itr)->ToPlayer())
+            {
+                //! Only continue if this player is actually in queue for the instance
+                //! we are searching a group for.
+                if (playerInQ->IsInMeetingStoneQueueForInstanceId(dungeonArea))
+                {
+                    if (Group* group = playerInQ->GetGroup())
+                    {
+                        //! Only make this work if this player is the leader of the group, else there is
+                        //! a high chance we iterate through the same group more than once. Also please
+                        //! note how the leader is contained in the iteration (obviously).
+                        if (group->GetLeaderGUID() == playerInQ->GetGUID())
+                        {
+                            for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+                            {
+                                if (Player* grpMember = itr->getSource())
+                                {
+                                    //! We won't invite ourselves to this group if:
+                                    //  - One of their members is not in queue for the queue;
+                                    //  - A groupmember ignored this player (or likewise);
+                                    //  - The group is full;
+                                    if (!grpMember->IsInMeetingStoneQueueForInstanceId(dungeonArea) || group->IsFull() || grpMember->GetSocial()->HasIgnore(GetGUIDLow()) || GetSocial()->HasIgnore(grpMember->GetGUIDLow()))
+                                        break;
+
+                                    group->AddInvite(this);
+                                    //RemoveFromMeetingStoneQueue(); //? Won't this crash? Removing an element while iterating over it...
+                                    foundGroup = true;
+                                }
+                            }
+                        }
+                    }
+                    //! If player is not in a group and thus searching on its own...
+                    else
+                    {
+                        group = new Group;
+                        group->Create(this);
+                        group->AddMember(playerInQ);
+                        //group->AddMember(this); // Not sure if neccesary
+                        //! We are not removing them from queue on purpose as they are
+                        //! still searching for new players to join.
+                    }
+                }
+            }
+        }
+    }
+    else
+        timeInMeetingStoneQueue = 0;
+
+    if (foundGroup)
+        RemoveFromMeetingStoneQueue();
 }

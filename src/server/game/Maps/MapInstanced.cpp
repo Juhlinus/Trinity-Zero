@@ -25,7 +25,7 @@
 #include "World.h"
 #include "Group.h"
 
-MapInstanced::MapInstanced(uint32 id, time_t expiry) : Map(id, expiry, 0, DUNGEON_DIFFICULTY_NORMAL)
+MapInstanced::MapInstanced(uint32 id, time_t expiry) : Map(id, expiry, 0)
 {
     // initialize instanced maps list
     m_InstancedMaps.clear();
@@ -140,7 +140,7 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
     }
     else
     {
-        InstancePlayerBind* pBind = player->GetBoundInstance(GetId(), player->GetDifficulty(IsRaid()));
+        InstancePlayerBind* pBind = player->GetBoundInstance(GetId());
         InstanceSave* pSave = pBind ? pBind->save : NULL;
 
         // the player's permanent player bind is taken into consideration first
@@ -149,7 +149,7 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
         {
             InstanceGroupBind* groupBind = NULL;
             Group* group = player->GetGroup();
-            // use the player's difficulty setting (it may not be the same as the group's)
+            // use the player's saved setting (it may not be the same as the group's)
             if (group)
             {
                 groupBind = group->GetBoundInstance(this);
@@ -164,7 +164,7 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
             map = FindInstanceMap(newInstanceId);
             // it is possible that the save exists but the map doesn't
             if (!map)
-                map = CreateInstance(newInstanceId, pSave, pSave->GetDifficulty());
+                map = CreateInstance(newInstanceId, pSave);
         }
         else
         {
@@ -172,19 +172,18 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
             // the instance will be created for the first time
             newInstanceId = sMapMgr->GenerateInstanceId();
 
-            Difficulty diff = player->GetGroup() ? player->GetGroup()->GetDifficulty(IsRaid()) : player->GetDifficulty(IsRaid());
             //Seems it is now possible, but I do not know if it should be allowed
             //ASSERT(!FindInstanceMap(NewInstanceId));
             map = FindInstanceMap(newInstanceId);
             if (!map)
-                map = CreateInstance(newInstanceId, NULL, diff);
+                map = CreateInstance(newInstanceId, NULL);
         }
     }
 
     return map;
 }
 
-InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save, Difficulty difficulty)
+InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save)
 {
     // load/create a map
     TRINITY_GUARD(ACE_Thread_Mutex, Lock);
@@ -203,12 +202,9 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
         ASSERT(false);
     }
 
-    // some instances only have one difficulty
-    GetDownscaledMapDifficultyData(GetId(), difficulty);
+    sLog->outDebug(LOG_FILTER_MAPS, "MapInstanced::CreateInstance: %s map instance %d for %d created", save ? "" : "new", InstanceId, GetId());
 
-    sLog->outDebug(LOG_FILTER_MAPS, "MapInstanced::CreateInstance: %s map instance %d for %d created with difficulty %s", save?"":"new ", InstanceId, GetId(), difficulty?"heroic":"normal");
-
-    InstanceMap* map = new InstanceMap(GetId(), GetGridExpiry(), InstanceId, difficulty, this);
+    InstanceMap* map = new InstanceMap(GetId(), GetGridExpiry(), InstanceId, this);
     ASSERT(map->IsDungeon());
 
     map->LoadRespawnTimes();
@@ -228,19 +224,10 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
     sLog->outDebug(LOG_FILTER_MAPS, "MapInstanced::CreateBattleground: map bg %d for %d created.", InstanceId, GetId());
 
     PvPDifficultyEntry const* bracketEntry = GetBattlegroundBracketByLevel(bg->GetMapId(), bg->GetMinLevel());
-
-    uint8 spawnMode;
-
-    if (bracketEntry)
-        spawnMode = bracketEntry->difficulty;
-    else
-        spawnMode = REGULAR_DIFFICULTY;
-
-    BattlegroundMap* map = new BattlegroundMap(GetId(), GetGridExpiry(), InstanceId, this, spawnMode);
+    BattlegroundMap* map = new BattlegroundMap(GetId(), GetGridExpiry(), InstanceId, this);
     ASSERT(map->IsBattleground());
     map->SetBG(bg);
     bg->SetBgMap(map);
-
     m_InstancedMaps[InstanceId] = map;
     return map;
 }

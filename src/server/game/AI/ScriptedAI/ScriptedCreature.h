@@ -195,76 +195,9 @@ struct ScriptedAI : public CreatureAI
 
     bool EnterEvadeIfOutOfCombatArea(uint32 const diff);
 
-    // return true for heroic mode. i.e.
-    //   - for dungeon in mode 10-heroic,
-    //   - for raid in mode 10-Heroic
-    //   - for raid in mode 25-heroic
-    // DO NOT USE to check raid in mode 25-normal.
-    bool IsHeroic() const { return _isHeroic; }
-
-    // return the dungeon or raid difficulty
-    Difficulty GetDifficulty() const { return _difficulty; }
-
-    // return true for 25 man or 25 man heroic mode
-    bool Is25ManRaid() const { return _difficulty & RAID_DIFFICULTY_MASK_25MAN; }
-
-    template<class T> inline
-    const T& DUNGEON_MODE(const T& normal5, const T& heroic10) const
-    {
-        switch (_difficulty)
-        {
-            case DUNGEON_DIFFICULTY_NORMAL:
-                return normal5;
-            case DUNGEON_DIFFICULTY_HEROIC:
-                return heroic10;
-            default:
-                break;
-        }
-
-        return heroic10;
-    }
-
-    template<class T> inline
-    const T& RAID_MODE(const T& normal10, const T& normal25) const
-    {
-        switch (_difficulty)
-        {
-            case RAID_DIFFICULTY_10MAN_NORMAL:
-                return normal10;
-            case RAID_DIFFICULTY_25MAN_NORMAL:
-                return normal25;
-            default:
-                break;
-        }
-
-        return normal25;
-    }
-
-    template<class T> inline
-    const T& RAID_MODE(const T& normal10, const T& normal25, const T& heroic10, const T& heroic25) const
-    {
-        switch (_difficulty)
-        {
-            case RAID_DIFFICULTY_10MAN_NORMAL:
-                return normal10;
-            case RAID_DIFFICULTY_25MAN_NORMAL:
-                return normal25;
-            case RAID_DIFFICULTY_10MAN_HEROIC:
-                return heroic10;
-            case RAID_DIFFICULTY_25MAN_HEROIC:
-                return heroic25;
-            default:
-                break;
-        }
-
-        return heroic25;
-    }
-
     private:
-        Difficulty _difficulty;
         uint32 _evadeCheckCooldown;
         bool _isCombatMovementAllowed;
-        bool _isHeroic;
 };
 
 struct Scripted_NoMovementAI : public ScriptedAI

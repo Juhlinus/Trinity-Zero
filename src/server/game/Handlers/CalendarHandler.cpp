@@ -117,17 +117,18 @@ void WorldSession::HandleCalendarGetCalendar(WorldPacket& /*recvData*/)
     size_t p_counter = data.wpos();
     data << uint32(counter);                               // instance save count
 
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
-        for (Player::BoundInstancesMap::const_iterator itr = _player->m_boundInstances[i].begin(); itr != _player->m_boundInstances[i].end(); ++itr)
-            if (itr->second.perm)
-            {
-                InstanceSave const* save = itr->second.save;
-                data << uint32(save->GetMapId());
-                data << uint32(save->GetDifficulty());
-                data << uint32(save->GetResetTime() - cur_time);
-                data << uint64(save->GetInstanceId());     // instance save id as unique instance copy id
-                ++counter;
-            }
+    for (Player::BoundInstancesMap::const_iterator itr = _player->m_boundInstances.begin(); itr != _player->m_boundInstances.end(); ++itr)
+    {
+        if (itr->second.perm)
+        {
+            InstanceSave const* save = itr->second.save;
+            data << uint32(save->GetMapId());
+            //data << uint32(save->GetDifficulty());
+            data << uint32(save->GetResetTime() - cur_time);
+            data << uint64(save->GetInstanceId());     // instance save id as unique instance copy id
+            ++counter;
+        }
+    }
 
     data.put<uint32>(p_counter, counter);
 
@@ -139,8 +140,8 @@ void WorldSession::HandleCalendarGetCalendar(WorldPacket& /*recvData*/)
 
     std::set<uint32> sentMaps;
 
-    ResetTimeByMapDifficultyMap const& resets = sInstanceSaveMgr->GetResetTimeMap();
-    for (ResetTimeByMapDifficultyMap::const_iterator itr = resets.begin(); itr != resets.end(); ++itr)
+    ResetTimeByMapId const& resets = sInstanceSaveMgr->GetResetTimeMap();
+    for (ResetTimeByMapId::const_iterator itr = resets.begin(); itr != resets.end(); ++itr)
     {
         uint32 mapId = PAIR32_LOPART(itr->first);
 
@@ -871,7 +872,7 @@ void WorldSession::SendCalendarRaidLockout(InstanceSave const* save, bool add)
     }
 
     data << uint32(save->GetMapId());
-    data << uint32(save->GetDifficulty());
+    //data << uint32(save->GetDifficulty());
     data << uint32(save->GetResetTime() - currTime);
     data << uint64(save->GetInstanceId());
     SendPacket(&data);
@@ -883,15 +884,14 @@ void WorldSession::SendCalendarRaidLockoutUpdated(InstanceSave const* save)
         return;
 
     uint64 guid = _player->GetGUID();
-    sLog->outDebug(LOG_FILTER_NETWORKIO, "SMSG_CALENDAR_RAID_LOCKOUT_UPDATED [" UI64FMTD
-        "] Map: %u, Difficulty %u", guid, save->GetMapId(), save->GetDifficulty());
+    sLog->outDebug(LOG_FILTER_NETWORKIO, "SMSG_CALENDAR_RAID_LOCKOUT_UPDATED [" UI64FMTD "] Map: %u", guid, save->GetMapId());
 
     time_t cur_time = time_t(time(NULL));
 
     WorldPacket data(SMSG_CALENDAR_RAID_LOCKOUT_UPDATED, 4 + 4 + 4 + 4 + 8);
     data << secsToTimeBitFields(cur_time);
     data << uint32(save->GetMapId());
-    data << uint32(save->GetDifficulty());
+    //data << uint32(save->GetDifficulty());
     data << uint32(0); // Amount of seconds that has changed to the reset time
     data << uint32(save->GetResetTime() - cur_time);
     SendPacket(&data);

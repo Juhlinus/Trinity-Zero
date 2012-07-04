@@ -354,7 +354,6 @@ struct DungeonEncounterEntry
 {
     uint32 id;                                              // 0        unique id
     uint32 mapId;                                           // 1        map id
-    uint32 difficulty;                                      // 2        instance mode
     //uint32 unk0;                                          // 3
     uint32 encounterIndex;                                  // 4        encounter index for creating completed mask
     char*  encounterName[16];                               // 5-20     encounter name
@@ -779,18 +778,6 @@ struct MapEntry
     }
 };
 
-struct MapDifficultyEntry
-{
-    //uint32      Id;                                       // 0
-    uint32      MapId;                                      // 1
-    uint32      Difficulty;                                 // 2
-    char*       areaTriggerText;                            // 3-18 text showed when transfer to map failed (missing requirements)
-    //uint32      textFlags;                                // 19
-    uint32      resetTime;                                  // 20
-    uint32      maxPlayers;                                 // 21
-    //char*       difficultyString;                         // 22
-};
-
 struct MovieEntry
 {
     uint32      Id;                                         // 0 index
@@ -1112,7 +1099,6 @@ struct SpellEntry
     //uint32  PowerDisplayId;                               // 228      PowerDisplay.dbc, new in 3.1
     float     EffectBonusMultiplier[MAX_SPELL_EFFECTS];     // 229-231  3.2.0
     //uint32  spellDescriptionVariableID;                   // 232      3.2.0
-    //uint32  SpellDifficultyId;                            // 233      3.3.0
 };
 
 typedef std::set<uint32> SpellCategorySet;
@@ -1126,12 +1112,6 @@ struct SpellCastTimesEntry
     int32     CastTime;                                     // 1
     //float     CastTimePerLevel;                           // 2 unsure / per skill?
     //int32     MinCastTime;                                // 3 unsure
-};
-
-struct SpellDifficultyEntry
-{
-    uint32     ID;                                          // 0
-    int32      SpellID[MAX_DIFFICULTY];                     // 1-4 instance modes: 10N, 25N, 10H, 25H or Normal/Heroic if only 1-2 is set, if 3-4 is 0 then Mode-2
 };
 
 struct SpellFocusObjectEntry
@@ -1415,17 +1395,6 @@ struct WorldStateUI
 #else
 #pragma pack(pop)
 #endif
-
-// Structures not used for casting to loaded DBC data and not required then packing
-struct MapDifficulty
-{
-    MapDifficulty() : resetTime(0), maxPlayers(0), hasErrorMessage(false) {}
-    MapDifficulty(uint32 _resetTime, uint32 _maxPlayers, bool _hasErrorMessage) : resetTime(_resetTime), maxPlayers(_maxPlayers), hasErrorMessage(_hasErrorMessage) {}
-
-    uint32 resetTime;
-    uint32 maxPlayers;
-    bool hasErrorMessage;
-};
 
 struct TalentSpellPos
 {

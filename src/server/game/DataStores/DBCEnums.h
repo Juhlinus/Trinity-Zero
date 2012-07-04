@@ -62,57 +62,13 @@ enum AreaFlags
     AREA_FLAG_CAPITAL          = 0x00000100,                // main capital city flag
     AREA_FLAG_CITY             = 0x00000200,                // only for one zone named "City" (where it located?)
     //AREA_FLAG_OUTLAND          = 0x00000400,                // expansion zones? (only Eye of the Storm not have this flag, but have 0x00004000 flag)
-    AREA_FLAG_SANCTUARY        = 0x00000800,                // sanctuary area (PvP disabled)
-    AREA_FLAG_NEED_FLY         = 0x00001000,                // Respawn alive at the graveyard without corpse
-    AREA_FLAG_UNUSED1          = 0x00002000,                // Unused in 3.3.5a
-    AREA_FLAG_UNUSED2          = 0x00020000,                // Unused in 3.3.5a
+    //AREA_FLAG_SANCTUARY        = 0x00000800,                // sanctuary area (PvP disabled)
+    //AREA_FLAG_NEED_FLY         = 0x00001000,                // Respawn alive at the graveyard without corpse
+    //AREA_FLAG_UNUSED1          = 0x00002000,                // Unused in 3.3.5a
+    //AREA_FLAG_UNUSED2          = 0x00020000,                // Unused in 3.3.5a
     AREA_FLAG_CONTESTED_AREA   = 0x00040000,                // On PvP servers these areas are considered contested, even though the zone it is contained in is a Horde/Alliance territory.
-    AREA_FLAG_UNK6             = 0x00080000,                // Valgarde and Acherus: The Ebon Hold
+    //AREA_FLAG_UNK6             = 0x00080000,                // Valgarde and Acherus: The Ebon Hold
     AREA_FLAG_LOWLEVEL         = 0x00100000,                // used for some starting areas with area_level <= 15
-    AREA_FLAG_TOWN             = 0x00200000,                // small towns with Inn
-    AREA_FLAG_UNK7             = 0x00400000,                // Warsong Hold, Acherus: The Ebon Hold, New Agamand Inn, Vengeance Landing Inn, Sunreaver Pavilion (Something to do with team?)
-    AREA_FLAG_UNK8             = 0x00800000,                // Valgarde, Acherus: The Ebon Hold, Westguard Inn, Silver Covenant Pavilion (Something to do with team?)
-    AREA_FLAG_INSIDE           = 0x02000000,                // used for determinating spell related inside/outside questions in Map::IsOutdoors
-    AREA_FLAG_OUTSIDE          = 0x04000000,                // used for determinating spell related inside/outside questions in Map::IsOutdoors
-};
-
-enum Difficulty
-{
-    REGULAR_DIFFICULTY           = 0,
-
-    DUNGEON_DIFFICULTY_NORMAL    = 0,
-    DUNGEON_DIFFICULTY_HEROIC    = 1,
-    DUNGEON_DIFFICULTY_EPIC      = 2,
-
-    RAID_DIFFICULTY_10MAN_NORMAL = 0,
-    RAID_DIFFICULTY_25MAN_NORMAL = 1,
-    RAID_DIFFICULTY_10MAN_HEROIC = 2,
-    RAID_DIFFICULTY_25MAN_HEROIC = 3,
-};
-
-#define RAID_DIFFICULTY_MASK_25MAN 1    // since 25man difficulties are 1 and 3, we can check them like that
-
-#define MAX_DUNGEON_DIFFICULTY     3
-#define MAX_RAID_DIFFICULTY        4
-#define MAX_DIFFICULTY             4
-
-enum SpawnMask
-{
-    SPAWNMASK_CONTINENT         = (1 << REGULAR_DIFFICULTY), // any any maps without spawn modes
-
-    SPAWNMASK_DUNGEON_NORMAL    = (1 << DUNGEON_DIFFICULTY_NORMAL),
-    SPAWNMASK_DUNGEON_HEROIC    = (1 << DUNGEON_DIFFICULTY_HEROIC),
-    SPAWNMASK_DUNGEON_ALL       = (SPAWNMASK_DUNGEON_NORMAL | SPAWNMASK_DUNGEON_HEROIC),
-
-    SPAWNMASK_RAID_10MAN_NORMAL = (1 << RAID_DIFFICULTY_10MAN_NORMAL),
-    SPAWNMASK_RAID_25MAN_NORMAL = (1 << RAID_DIFFICULTY_25MAN_NORMAL),
-    SPAWNMASK_RAID_NORMAL_ALL   = (SPAWNMASK_RAID_10MAN_NORMAL | SPAWNMASK_RAID_25MAN_NORMAL),
-
-    SPAWNMASK_RAID_10MAN_HEROIC = (1 << RAID_DIFFICULTY_10MAN_HEROIC),
-    SPAWNMASK_RAID_25MAN_HEROIC = (1 << RAID_DIFFICULTY_25MAN_HEROIC),
-    SPAWNMASK_RAID_HEROIC_ALL   = (SPAWNMASK_RAID_10MAN_HEROIC | SPAWNMASK_RAID_25MAN_HEROIC),
-
-    SPAWNMASK_RAID_ALL          = (SPAWNMASK_RAID_NORMAL_ALL | SPAWNMASK_RAID_HEROIC_ALL),
 };
 
 enum FactionTemplateFlags
@@ -153,15 +109,7 @@ enum ItemEnchantmentType
     ITEM_ENCHANTMENT_TYPE_EQUIP_SPELL      = 3,
     ITEM_ENCHANTMENT_TYPE_RESISTANCE       = 4,
     ITEM_ENCHANTMENT_TYPE_STAT             = 5,
-    ITEM_ENCHANTMENT_TYPE_TOTEM            = 6,
-    ITEM_ENCHANTMENT_TYPE_USE_SPELL        = 7,
-    ITEM_ENCHANTMENT_TYPE_PRISMATIC_SOCKET = 8
-};
-
-enum ItemLimitCategoryMode
-{
-    ITEM_LIMIT_CATEGORY_MODE_HAVE  = 0,                      // limit applied to amount items in inventory/bank
-    ITEM_LIMIT_CATEGORY_MODE_EQUIP = 1,                      // limit applied to amount equipped items (including used gems)
+    ITEM_ENCHANTMENT_TYPE_TOTEM            = 6
 };
 
 enum TotemCategoryType

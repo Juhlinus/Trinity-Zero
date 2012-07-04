@@ -148,18 +148,12 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     bool allowMount = !mEntry->IsDungeon() || mEntry->IsBattleground();
     if (mInstance)
     {
-        Difficulty diff = GetPlayer()->GetDifficulty(mEntry->IsRaid());
-        if (MapDifficulty const* mapDiff = GetMapDifficultyData(mEntry->MapID, diff))
+        if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(mEntry->MapID))
         {
-            if (mapDiff->resetTime)
-            {
-                if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(mEntry->MapID, diff))
-                {
-                    uint32 timeleft = uint32(timeReset - time(NULL));
-                    GetPlayer()->SendInstanceResetWarning(mEntry->MapID, diff, timeleft);
-                }
-            }
+            uint32 timeleft = uint32(timeReset - time(NULL));
+            GetPlayer()->SendInstanceResetWarning(mEntry->MapID, timeleft);
         }
+
         allowMount = mInstance->AllowMount;
     }
 

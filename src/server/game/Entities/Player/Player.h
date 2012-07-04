@@ -629,16 +629,6 @@ enum TransferAbortReason
     TRANSFER_ABORT_NOT_FOUND                = 0x03,         // Transfer Aborted: instance not found
     TRANSFER_ABORT_TOO_MANY_INSTANCES       = 0x04,         // You have entered too many instances recently.
     TRANSFER_ABORT_ZONE_IN_COMBAT           = 0x06,         // Unable to zone in while an encounter is in progress.
-    TRANSFER_ABORT_INSUF_EXPAN_LVL          = 0x07,         // You must have <TBC, WotLK> expansion installed to access this area.
-    TRANSFER_ABORT_DIFFICULTY               = 0x08,         // <Normal, Heroic, Epic> difficulty mode is not available for %s.
-    TRANSFER_ABORT_UNIQUE_MESSAGE           = 0x09,         // Until you've escaped TLK's grasp, you cannot leave this place!
-    TRANSFER_ABORT_TOO_MANY_REALM_INSTANCES = 0x0A,         // Additional instances cannot be launched, please try again later.
-    TRANSFER_ABORT_NEED_GROUP               = 0x0B,         // 3.1
-    TRANSFER_ABORT_NOT_FOUND1               = 0x0C,         // 3.1
-    TRANSFER_ABORT_NOT_FOUND2               = 0x0D,         // 3.1
-    TRANSFER_ABORT_NOT_FOUND3               = 0x0E,         // 3.2
-    TRANSFER_ABORT_REALM_ONLY               = 0x0F,         // All players on party must be from the same realm.
-    TRANSFER_ABORT_MAP_NOT_ALLOWED          = 0x10,         // Map can't be entered at this time.
 };
 
 enum InstanceResetWarningType
@@ -1023,7 +1013,7 @@ class Player : public Unit, public GridObject<Player>
         void SendInitialPacketsBeforeAddToMap();
         void SendInitialPacketsAfterAddToMap();
         void SendTransferAborted(uint32 mapid, TransferAbortReason reason, uint8 arg = 0);
-        void SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time);
+        void SendInstanceResetWarning(uint32 mapid, uint32 time);
 
         bool CanInteractWithQuestGiver(Object* questGiver);
         Creature* GetNPCIfCanInteractWith(uint64 guid, uint32 npcflagmask);
@@ -1710,14 +1700,6 @@ class Player : public Unit, public GridObject<Player>
         int GetGuildIdInvited() { return m_GuildIdInvited; }
         static void RemovePetitionsAndSigns(uint64 guid, uint32 type);
 
-        Difficulty GetDifficulty(bool isRaid) const { return isRaid ? m_raidDifficulty : m_dungeonDifficulty; }
-        Difficulty GetDungeonDifficulty() const { return m_dungeonDifficulty; }
-        Difficulty GetRaidDifficulty() const { return m_raidDifficulty; }
-        Difficulty GetStoredRaidDifficulty() const { return m_raidMapDifficulty; } // only for use in difficulty packet after exiting to raid map
-        void SetDungeonDifficulty(Difficulty dungeon_difficulty) { m_dungeonDifficulty = dungeon_difficulty; }
-        void SetRaidDifficulty(Difficulty raid_difficulty) { m_raidDifficulty = raid_difficulty; }
-        void StoreRaidMapDifficulty() { m_raidMapDifficulty = GetMap()->GetDifficulty(); }
-
         bool UpdateSkill(uint32 skill_id, uint32 step);
         bool UpdateSkillPro(uint16 SkillId, int32 Chance, uint32 step);
 
@@ -1802,8 +1784,6 @@ class Player : public Unit, public GridObject<Player>
         void SendAutoRepeatCancel(Unit* target);
         void SendExplorationExperience(uint32 Area, uint32 Experience);
 
-        void SendDungeonDifficulty(bool IsInGroup);
-        void SendRaidDifficulty(bool IsInGroup, int32 forcedDifficulty = -1);
         void ResetInstances(uint8 method, bool isRaid);
         void SendResetInstanceSuccess(uint32 MapId);
         void SendResetInstanceFailed(uint32 reason, uint32 MapId);
@@ -2233,13 +2213,12 @@ class Player : public Unit, public GridObject<Player>
 
         uint32 m_HomebindTimer;
         bool m_InstanceValid;
-        // permanent binds and solo binds by difficulty
-        BoundInstancesMap m_boundInstances[MAX_DIFFICULTY];
-        InstancePlayerBind* GetBoundInstance(uint32 mapid, Difficulty difficulty);
-        BoundInstancesMap& GetBoundInstances(Difficulty difficulty) { return m_boundInstances[difficulty]; }
+        BoundInstancesMap m_boundInstances;
+        InstancePlayerBind* GetBoundInstance(uint32 mapid);
+        BoundInstancesMap& GetBoundInstances() { return m_boundInstances; }
         InstanceSave* GetInstanceSave(uint32 mapid, bool raid);
-        void UnbindInstance(uint32 mapid, Difficulty difficulty, bool unload = false);
-        void UnbindInstance(BoundInstancesMap::iterator &itr, Difficulty difficulty, bool unload = false);
+        void UnbindInstance(uint32 mapid, bool unload = false);
+        void UnbindInstance(BoundInstancesMap::iterator &itr, bool unload = false);
         InstancePlayerBind* BindToInstance(InstanceSave* save, bool permanent, bool load = false);
         void BindToInstance();
         void SetPendingBind(uint32 instanceId, uint32 bindTimer) { _pendingBindId = instanceId; _pendingBindTimer = bindTimer; }
@@ -2289,10 +2268,7 @@ class Player : public Unit, public GridObject<Player>
         /*********************************************************/
         std::map<uint32 /*GUIDLow*/, uint32 /*areaId*/> meetingStoneQueue;
 
-        void CheckMeetingStoneValidity();
-
-        //void GetMeetingStoneQueueForInstanceId(uint32 areaId);//return sObjectMgr->GetMeetingStoneInfo(); }
-
+        void CheckMeetingStoneQueue(time_t currTime);
         bool IsInMeetingStoneQueue();
         bool IsInMeetingStoneQueueForInstanceId(uint32 areaId);
         std::vector<Player*> GetPlayersInMeetingStoneQueueForInstanceId(uint32 areaId);
@@ -2300,7 +2276,7 @@ class Player : public Unit, public GridObject<Player>
         uint32 GetAreaIdInMeetingStoneQueue();
         uint32 GetTimeInMeetingStoneQueue() { return timeInMeetingStoneQueue; }
         std::string GetMeetingStoneQueueDungeonName(uint32 _areaId);
-        void AddToMeetingStoneQueue(uint32 areaId) { meetingStoneQueue[areaId] = GetGUIDLow(); }
+        void AddToMeetingStoneQueue(uint32 areaId) { meetingStoneQueue[GetGUIDLow()] = areaId; }
         void RemoveFromMeetingStoneQueue();
 
         // Battleground Group System
@@ -2331,8 +2307,6 @@ class Player : public Unit, public GridObject<Player>
         //bool isActiveObject() const { return true; }
         bool canSeeSpellClickOn(Creature const* creature) const;
 
-        uint32 GetChampioningFaction() const { return m_ChampioningFaction; }
-        void SetChampioningFaction(uint32 faction) { m_ChampioningFaction = faction; }
         Spell* m_spellModTakingSpell;
 
         float GetAverageItemLevel();
@@ -2498,9 +2472,6 @@ class Player : public Unit, public GridObject<Player>
         uint32 m_nextSave;
         time_t m_speakTime;
         uint32 m_speakCount;
-        Difficulty m_dungeonDifficulty;
-        Difficulty m_raidDifficulty;
-        Difficulty m_raidMapDifficulty;
 
         uint32 m_atLoginFlags;
 
@@ -2580,7 +2551,8 @@ class Player : public Unit, public GridObject<Player>
         uint32 m_zoneUpdateTimer;
         uint32 m_areaUpdateId;
 
-        uint32 timeInMeetingStoneQueue;
+        time_t timeInMeetingStoneQueue;
+
         uint32 checkForGroupTimer;
 
         uint32 m_deathTimer;
@@ -2698,8 +2670,6 @@ class Player : public Unit, public GridObject<Player>
         ReputationMgr  m_reputationMgr;
 
         SpellCooldowns m_spellCooldowns;
-
-        uint32 m_ChampioningFaction;
 
         uint32 m_timeSyncCounter;
         uint32 m_timeSyncTimer;

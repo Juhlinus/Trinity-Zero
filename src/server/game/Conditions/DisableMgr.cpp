@@ -131,18 +131,11 @@ void LoadDisables()
                         if (flags)
                             isFlagInvalid = true;
                         break;
-                    case MAP_INSTANCE:
-                    case MAP_RAID:
-                        if (flags & DUNGEON_STATUSFLAG_HEROIC && !GetMapDifficultyData(entry, DUNGEON_DIFFICULTY_HEROIC))
-                            isFlagInvalid = true;
-                        else if (flags & RAID_STATUSFLAG_10MAN_HEROIC && !GetMapDifficultyData(entry, RAID_DIFFICULTY_10MAN_HEROIC))
-                            isFlagInvalid = true;
-                        else if (flags & RAID_STATUSFLAG_25MAN_HEROIC && !GetMapDifficultyData(entry, RAID_DIFFICULTY_25MAN_HEROIC))
-                            isFlagInvalid = true;
-                        break;
                     case MAP_BATTLEGROUND:
                         sLog->outErrorDb("Battleground map %u specified to be disabled in map case, skipped.", entry);
                         continue;
+                    default:
+                        break;
                 }
                 if (isFlagInvalid)
                 {
@@ -303,7 +296,7 @@ bool IsDisabledFor(DisableType type, uint32 entry, Unit const* unit, uint8 flags
                 MapEntry const* mapEntry = sMapStore.LookupEntry(entry);
                 if (mapEntry->IsDungeon())
                 {
-                    uint8 disabledModes = itr->second.flags;
+                    /*uint8 disabledModes = itr->second.flags;
                     Difficulty targetDifficulty = player->GetDifficulty(mapEntry->IsRaid());
                     GetDownscaledMapDifficultyData(entry, targetDifficulty);
                     switch (targetDifficulty)
@@ -316,7 +309,7 @@ bool IsDisabledFor(DisableType type, uint32 entry, Unit const* unit, uint8 flags
                             return disabledModes & RAID_STATUSFLAG_10MAN_HEROIC;
                         case RAID_DIFFICULTY_25MAN_HEROIC:
                             return disabledModes & RAID_STATUSFLAG_25MAN_HEROIC;
-                    }
+                    }*/
                 }
                 else if (mapEntry->map_type == MAP_COMMON)
                     return true;

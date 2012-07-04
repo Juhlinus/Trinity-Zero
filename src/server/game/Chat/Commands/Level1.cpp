@@ -178,7 +178,7 @@ bool ChatHandler::HandleSummonCommand(const char* args)
             Map* cMap = target->GetMap();
 
             if (cMap->Instanceable() && cMap->GetInstanceId() != map->GetInstanceId())
-                target->UnbindInstance(map->GetInstanceId(), target->GetDungeonDifficulty(), true);
+                target->UnbindInstance(map->GetInstanceId(), true);
 
             // we are in instance, and can summon only player in our group with us as lead
             if (!m_session->GetPlayer()->GetGroup() || !target->GetGroup() ||
@@ -309,7 +309,7 @@ bool ChatHandler::HandleAppearCommand(const char* args)
 
             // if the player or the player's group is bound to another instance
             // the player will not be bound to another one
-            InstancePlayerBind* pBind = _player->GetBoundInstance(target->GetMapId(), target->GetDifficulty(cMap->IsRaid()));
+            InstancePlayerBind* pBind = _player->GetBoundInstance(target->GetMapId());
             if (!pBind)
             {
                 Group* group = _player->GetGroup();
@@ -319,11 +319,6 @@ bool ChatHandler::HandleAppearCommand(const char* args)
                     if (InstanceSave* save = sInstanceSaveMgr->GetInstanceSave(target->GetInstanceId()))
                         _player->BindToInstance(save, !save->CanReset());
             }
-
-            if (cMap->IsRaid())
-                _player->SetRaidDifficulty(target->GetRaidDifficulty());
-            else
-                _player->SetDungeonDifficulty(target->GetDungeonDifficulty());
         }
 
         PSendSysMessage(LANG_APPEARING_AT, chrNameLink.c_str());

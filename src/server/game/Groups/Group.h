@@ -246,11 +246,6 @@ class Group
         void SetGroupMemberFlag(uint64 guid, bool apply, GroupMemberFlags flag);
         void RemoveUniqueGroupMemberFlag(GroupMemberFlags flag);
 
-        Difficulty GetDifficulty(bool isRaid) const;
-        Difficulty GetDungeonDifficulty() const;
-        Difficulty GetRaidDifficulty() const;
-        void SetDungeonDifficulty(Difficulty difficulty);
-        void SetRaidDifficulty(Difficulty difficulty);
         uint16 InInstance();
         bool InCombatToInstance(uint32 instanceId);
         void ResetInstances(uint8 method, bool isRaid, Player* SendMsgTo);
@@ -292,11 +287,11 @@ class Group
         void DelinkMember(uint64 guid);
 
         InstanceGroupBind* BindToInstance(InstanceSave* save, bool permanent, bool load = false);
-        void UnbindInstance(uint32 mapid, uint8 difficulty, bool unload = false);
+        void UnbindInstance(uint32 mapid, bool unload = false);
         InstanceGroupBind* GetBoundInstance(Player* player);
         InstanceGroupBind* GetBoundInstance(Map* aMap);
         InstanceGroupBind* GetBoundInstance(MapEntry const* mapEntry);
-        BoundInstancesMap& GetBoundInstances(Difficulty difficulty);
+        BoundInstancesMap& GetBoundInstances() { return m_boundInstances; }
 
         // FG: evil hacks
         void BroadcastGroupUpdate(void);
@@ -318,15 +313,13 @@ class Group
         uint64              m_leaderGuid;
         std::string         m_leaderName;
         GroupType           m_groupType;
-        Difficulty          m_dungeonDifficulty;
-        Difficulty          m_raidDifficulty;
         Battleground*       m_bgGroup;
         uint64              m_targetIcons[TARGETICONCOUNT];
         LootMethod          m_lootMethod;
         ItemQualities       m_lootThreshold;
         uint64              m_looterGuid;
         Rolls               RollId;
-        BoundInstancesMap   m_boundInstances[MAX_DIFFICULTY];
+        BoundInstancesMap   m_boundInstances;
         uint8*              m_subGroupsCounts;
         uint64              m_guid;
         uint32              m_counter;                      // used only in SMSG_GROUP_LIST

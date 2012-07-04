@@ -64,11 +64,9 @@ class MapInstanced : public Map
         virtual void InitVisibilityDistance();
 
     private:
-        InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave* save, Difficulty difficulty);
+        InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave* save);
         BattlegroundMap* CreateBattleground(uint32 InstanceId, Battleground* bg);
-
         InstancedMaps m_InstancedMaps;
-
         uint16 GridMapReference[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
 };
 #endif

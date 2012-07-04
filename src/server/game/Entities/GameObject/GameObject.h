@@ -37,6 +37,15 @@ class GameObjectAI;
 
 #define MAX_GAMEOBJECT_QUEST_ITEMS 6
 
+struct MeetingStones
+{
+    uint32 areaId;
+    uint32 minLevel;
+    uint32 maxLevel;
+};
+
+typedef UNORDERED_MAP<uint32, MeetingStones> MeetingStonesContainer;
+
 // from `gameobject_template`
 struct GameObjectTemplate
 {
@@ -51,6 +60,7 @@ struct GameObjectTemplate
     uint32  flags;
     float   size;
     uint32  questItems[MAX_GAMEOBJECT_QUEST_ITEMS];
+
     union                                                   // different GO types have different data field
     {
         //0 GAMEOBJECT_TYPE_DOOR
@@ -346,46 +356,6 @@ struct GameObjectTemplate
             uint32 conditionID2;                            //5
             uint32 serverOnly;                              //6
         } auraGenerator;
-        //31 GAMEOBJECT_TYPE_DUNGEON_DIFFICULTY
-        struct
-        {
-            uint32 mapID;                                   //0
-            uint32 difficulty;                              //1
-        } dungeonDifficulty;
-        //32 GAMEOBJECT_TYPE_BARBER_CHAIR
-        struct
-        {
-            uint32 chairheight;                             //0
-            uint32 heightOffset;                            //1
-        } barberChair;
-        //33 GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING
-        struct
-        {
-            uint32 intactNumHits;                           //0
-            uint32 creditProxyCreature;                     //1
-            uint32 state1Name;                              //2
-            uint32 intactEvent;                             //3
-            uint32 damagedDisplayId;                        //4
-            uint32 damagedNumHits;                          //5
-            uint32 empty3;                                  //6
-            uint32 empty4;                                  //7
-            uint32 empty5;                                  //8
-            uint32 damagedEvent;                            //9
-            uint32 destroyedDisplayId;                      //10
-            uint32 empty7;                                  //11
-            uint32 empty8;                                  //12
-            uint32 empty9;                                  //13
-            uint32 destroyedEvent;                          //14
-            uint32 empty10;                                 //15
-            uint32 debuildingTimeSecs;                      //16
-            uint32 empty11;                                 //17
-            uint32 destructibleData;                        //18
-            uint32 rebuildingEvent;                         //19
-            uint32 empty12;                                 //20
-            uint32 empty13;                                 //21
-            uint32 damageEvent;                             //22
-            uint32 empty14;                                 //23
-        } building;
         //34 GAMEOBJECT_TYPE_GUILDBANK - empty
         //35 GAMEOBJECT_TYPE_TRAPDOOR
         struct
@@ -590,7 +560,6 @@ struct GameObjectData
     int32  spawntimesecs;
     uint32 animprogress;
     GOState go_state;
-    uint8 spawnMask;
     uint8 artKit;
     bool dbData;
 };
@@ -647,7 +616,7 @@ class GameObject : public WorldObject, public GridObject<GameObject>
         const char* GetNameForLocaleIdx(LocaleConstant locale_idx) const;
 
         void SaveToDB();
-        void SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask);
+        void SaveToDB(uint32 mapid, uint32 phaseMask);
         bool LoadFromDB(uint32 guid, Map* map) { return LoadGameObjectFromDB(guid, map, false); }
         bool LoadGameObjectFromDB(uint32 guid, Map* map, bool addToMap = true);
         void DeleteFromDB();

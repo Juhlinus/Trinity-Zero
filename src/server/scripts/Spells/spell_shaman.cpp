@@ -486,6 +486,5 @@ void AddSC_shaman_spell_scripts()
     new spell_sha_healing_stream_totem();
     new spell_sha_mana_spring_totem();
     new spell_sha_chain_heal();
-    new spell_sha_flame_shock();
     new spell_sha_sentry_totem();
 }

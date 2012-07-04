@@ -61,6 +61,22 @@ GameObject::GameObject() : WorldObject(false), m_model(NULL), m_goValue(new Game
     lootingGroupLowGUID = 0;
 
     ResetLootMode(); // restore default loot mode
+
+    std::vector<std::pair<uint32, uint32> > meetingStones;
+
+    if (GetGoType() == GAMEOBJECT_TYPE_MEETINGSTONE)
+    {
+        meetingStones.push_back(std::make_pair(GetGOInfo()->meetingstone.areaID, GetGOInfo()->meetingstone.minLevel));
+
+        MeetingStonesContainer const* gotc = sObjectMgr->GetGameObjectTemplates();
+        for (MeetingStonesContainer::const_iterator itr = gotc->begin(); itr != gotc->end(); ++itr)
+        {
+            switch (itr->second.areaId)
+            {
+
+            }
+        }
+    }
 }
 
 GameObject::~GameObject()
@@ -651,10 +667,10 @@ void GameObject::SaveToDB()
         return;
     }
 
-    SaveToDB(GetMapId(), data->spawnMask, data->phaseMask);
+    SaveToDB(GetMapId(), data->phaseMask);
 }
 
-void GameObject::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
+void GameObject::SaveToDB(uint32 mapid, uint32 phaseMask)
 {
     const GameObjectTemplate* goI = GetGOInfo();
 
@@ -681,7 +697,6 @@ void GameObject::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     data.spawntimesecs = m_spawnedByDefault ? m_respawnDelayTime : -(int32)m_respawnDelayTime;
     data.animprogress = GetGoAnimProgress();
     data.go_state = GetGoState();
-    data.spawnMask = spawnMask;
     data.artKit = GetGoArtKit();
 
     // Update in DB
@@ -697,7 +712,6 @@ void GameObject::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     stmt->setUInt32(index++, m_DBTableGuid);
     stmt->setUInt32(index++, GetEntry());
     stmt->setUInt16(index++, uint16(mapid));
-    stmt->setUInt8(index++, spawnMask);
     stmt->setUInt16(index++, uint16(GetPhaseMask()));
     stmt->setFloat(index++, GetPositionX());
     stmt->setFloat(index++, GetPositionY());

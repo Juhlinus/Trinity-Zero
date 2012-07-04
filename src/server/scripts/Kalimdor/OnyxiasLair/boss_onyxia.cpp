@@ -479,7 +479,7 @@ public:
                 {
                     me->SummonCreature(NPC_WHELP, SpawnLocations[0], TEMPSUMMON_CORPSE_DESPAWN);
                     me->SummonCreature(NPC_WHELP, SpawnLocations[1], TEMPSUMMON_CORPSE_DESPAWN);
-                    if (SummonWhelpCount >= RAID_MODE(20, 40))
+                    if (SummonWhelpCount >= 20)//RAID_MODE(20, 40))
                     {
                         SummonWhelpCount = 0;
                         WhelpTimer = 90000;

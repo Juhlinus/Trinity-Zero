@@ -33,6 +33,7 @@
 #include "InstanceSaveMgr.h"
 #include "MapInstanced.h"
 #include "Util.h"
+#include "Chat.h"
 
 Roll::Roll(uint64 _guid, LootItem const& li) : itemGUID(_guid), itemid(li.itemid),
 itemRandomPropId(li.randomPropertyId), itemRandomSuffix(li.randomSuffix), itemCount(li.count),
@@ -56,7 +57,6 @@ Loot* Roll::getLoot()
 }
 
 Group::Group() : m_leaderGuid(0), m_leaderName(""), m_groupType(GROUPTYPE_NORMAL),
-m_dungeonDifficulty(DUNGEON_DIFFICULTY_NORMAL), m_raidDifficulty(RAID_DIFFICULTY_10MAN_NORMAL),
 m_bgGroup(NULL), m_lootMethod(FREE_FOR_ALL), m_lootThreshold(ITEM_QUALITY_UNCOMMON), m_looterGuid(0),
 m_subGroupsCounts(NULL), m_guid(0), m_counter(0), m_maxEnchantingLevel(0), m_dbStoreId(0)
 {
@@ -85,9 +85,8 @@ Group::~Group()
     // it is undefined whether objectmgr (which stores the groups) or instancesavemgr
     // will be unloaded first so we must be prepared for both cases
     // this may unload some instance saves
-    for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
-        for (BoundInstancesMap::iterator itr2 = m_boundInstances[i].begin(); itr2 != m_boundInstances[i].end(); ++itr2)
-            itr2->second.save->RemoveGroup(this);
+    for (BoundInstancesMap::iterator itr2 = m_boundInstances.begin(); itr2 != m_boundInstances.end(); ++itr2)
+        itr2->second.save->RemoveGroup(this);
 
     // Sub group counters clean up
     delete[] m_subGroupsCounts;
@@ -111,14 +110,8 @@ bool Group::Create(Player* leader)
     m_lootThreshold = ITEM_QUALITY_UNCOMMON;
     m_looterGuid = leaderGuid;
 
-    m_dungeonDifficulty = DUNGEON_DIFFICULTY_NORMAL;
-    m_raidDifficulty = RAID_DIFFICULTY_10MAN_NORMAL;
-
     if (!isBGGroup())
     {
-        m_dungeonDifficulty = leader->GetDungeonDifficulty();
-        m_raidDifficulty = leader->GetRaidDifficulty();
-
         m_dbStoreId = sGroupMgr->GenerateNewGroupDbStoreId();
 
         sGroupMgr->RegisterGroupDbStoreId(m_dbStoreId, this);
@@ -142,8 +135,8 @@ bool Group::Create(Player* leader)
         stmt->setUInt32(index++, uint32(m_targetIcons[6]));
         stmt->setUInt32(index++, uint32(m_targetIcons[7]));
         stmt->setUInt8(index++, uint8(m_groupType));
-        stmt->setUInt32(index++, uint8(m_dungeonDifficulty));
-        stmt->setUInt32(index++, uint8(m_raidDifficulty));
+        //stmt->setUInt32(index++, uint8(m_dungeonDifficulty));
+        //stmt->setUInt32(index++, uint8(m_raidDifficulty));
 
         CharacterDatabase.Execute(stmt);
 
@@ -178,18 +171,6 @@ void Group::LoadGroupFromDB(Field* fields)
     m_groupType  = GroupType(fields[12].GetUInt8());
     if (m_groupType & GROUPTYPE_RAID)
         _initRaidSubGroupsCounter();
-
-    uint32 diff = fields[13].GetUInt8();
-    if (diff >= MAX_DUNGEON_DIFFICULTY)
-        m_dungeonDifficulty = DUNGEON_DIFFICULTY_NORMAL;
-    else
-        m_dungeonDifficulty = Difficulty(diff);
-
-    uint32 r_diff = fields[14].GetUInt8();
-    if (r_diff >= MAX_RAID_DIFFICULTY)
-       m_raidDifficulty = RAID_DIFFICULTY_10MAN_NORMAL;
-    else
-       m_raidDifficulty = Difficulty(r_diff);
 }
 
 void Group::LoadMemberFromDB(uint32 guidLow, uint8 memberFlags, uint8 subgroup, uint8 roles)
@@ -235,8 +216,19 @@ void Group::ConvertToRaid()
 
     // update quest related GO states (quest activity dependent from raid membership)
     for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+    {
         if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
+        {
             player->UpdateForQuestWorldObjects();
+
+            if (player->IsInMeetingStoneQueue())
+            {
+                std::string dungeonName = player->GetAreaIdInMeetingStoneQueue() ? player->GetMeetingStoneQueueDungeonName(player->GetAreaIdInMeetingStoneQueue()) : "<unkown>";
+                ChatHandler(player).PSendSysMessage("This group has been removed from the meeting stone queue for dungeon %s because of converting it into a raid group.", dungeonName);
+                player->RemoveFromMeetingStoneQueue();
+            }
+        }
+    }
 }
 
 bool Group::AddInvite(Player* player)
@@ -386,21 +378,8 @@ bool Group::AddMember(Player* player)
             // including raid/heroic instances that they are not permanently bound to!
             player->ResetInstances(INSTANCE_RESET_GROUP_JOIN, false);
             player->ResetInstances(INSTANCE_RESET_GROUP_JOIN, true);
-
-            if (player->getLevel() >= LEVELREQUIREMENT_HEROIC)
-            {
-                if (player->GetDungeonDifficulty() != GetDungeonDifficulty())
-                {
-                    player->SetDungeonDifficulty(GetDungeonDifficulty());
-                    player->SendDungeonDifficulty(true);
-                }
-                if (player->GetRaidDifficulty() != GetRaidDifficulty())
-                {
-                    player->SetRaidDifficulty(GetRaidDifficulty());
-                    player->SendRaidDifficulty(true);
-                }
-            }
         }
+
         player->SetGroupUpdateFlag(GROUP_UPDATE_FULL);
         UpdatePlayerOutOfRange(player);
 
@@ -410,6 +389,19 @@ bool Group::AddMember(Player* player)
 
         if (m_maxEnchantingLevel < player->GetSkillValue(SKILL_ENCHANTING))
             m_maxEnchantingLevel = player->GetSkillValue(SKILL_ENCHANTING);
+    }
+
+    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+    {
+        if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
+        {
+            if (player->IsInMeetingStoneQueue())
+            {
+                std::string dungeonName = (player->GetAreaIdInMeetingStoneQueue() ? player->GetMeetingStoneQueueDungeonName(player->GetAreaIdInMeetingStoneQueue()) : "<unkown>");
+                ChatHandler(player).PSendSysMessage("This group has been removed from the meeting stone queue for dungeon %s because a player with a too high or too low level was invited to the group.", dungeonName);
+                player->RemoveFromMeetingStoneQueue();
+            }
+        }
     }
 
     return true;
@@ -550,18 +542,15 @@ void Group::ChangeLeader(uint64 guid)
     if (!isBGGroup())
     {
         // Remove the groups permanent instance bindings
-        for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+        for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end();)
         {
-            for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end();)
+            if (itr->second.perm)
             {
-                if (itr->second.perm)
-                {
-                    itr->second.save->RemoveGroup(this);
-                    m_boundInstances[i].erase(itr++);
-                }
-                else
-                    ++itr;
+                itr->second.save->RemoveGroup(this);
+                m_boundInstances[i].erase(itr++);
             }
+            else
+                ++itr;
         }
 
         // Same in the database
@@ -1309,8 +1298,8 @@ void Group::SendUpdateToPlayer(uint64 playerGUID, MemberSlot* slot)
         data << uint8(m_lootMethod);                    // loot method
         data << uint64(m_looterGuid);                   // looter guid
         data << uint8(m_lootThreshold);                 // loot threshold
-        data << uint8(m_dungeonDifficulty);             // Dungeon Difficulty
-        data << uint8(m_raidDifficulty);                // Raid Difficulty
+        //data << uint8(m_dungeonDifficulty);             // Dungeon Difficulty
+        //data << uint8(m_raidDifficulty);                // Raid Difficulty
         data << uint8(0);                               // 3.3
     }
 
@@ -1601,60 +1590,12 @@ void Roll::targetObjectBuildLink()
     getTarget()->addLootValidatorRef(this);
 }
 
-void Group::SetDungeonDifficulty(Difficulty difficulty)
-{
-    m_dungeonDifficulty = difficulty;
-    if (!isBGGroup())
-    {
-        PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_GROUP_DIFFICULTY);
-
-        stmt->setUInt8(0, uint8(m_dungeonDifficulty));
-        stmt->setUInt32(1, m_dbStoreId);
-
-        CharacterDatabase.Execute(stmt);
-    }
-
-    for (GroupReference* itr = GetFirstMember(); itr != NULL; itr = itr->next())
-    {
-        Player* player = itr->getSource();
-        if (!player->GetSession())
-            continue;
-
-        player->SetDungeonDifficulty(difficulty);
-        player->SendDungeonDifficulty(true);
-    }
-}
-
-void Group::SetRaidDifficulty(Difficulty difficulty)
-{
-    m_raidDifficulty = difficulty;
-    if (!isBGGroup())
-    {
-        PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_GROUP_RAID_DIFFICULTY);
-
-        stmt->setUInt8(0, uint8(m_raidDifficulty));
-        stmt->setUInt32(1, m_dbStoreId);
-
-        CharacterDatabase.Execute(stmt);
-    }
-
-    for (GroupReference* itr = GetFirstMember(); itr != NULL; itr = itr->next())
-    {
-        Player* player = itr->getSource();
-        if (!player->GetSession())
-            continue;
-
-        player->SetRaidDifficulty(difficulty);
-        player->SendRaidDifficulty(true);
-    }
-}
-
 bool Group::InCombatToInstance(uint32 instanceId)
 {
     for (GroupReference* itr = GetFirstMember(); itr != NULL; itr = itr->next())
     {
         Player* player = itr->getSource();
-        if (player && !player->getAttackers().empty() && player->GetInstanceId() == instanceId && (player->GetMap()->IsRaidOrHeroicDungeon()))
+        if (player && !player->getAttackers().empty() && player->GetInstanceId() == instanceId)
             for (std::set<Unit*>::const_iterator i = player->getAttackers().begin(); i != player->getAttackers().end(); ++i)
                 if ((*i) && (*i)->GetTypeId() == TYPEID_UNIT && (*i)->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_INSTANCE_BIND)
                     return true;
@@ -1667,12 +1608,9 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* SendMsgTo)
     if (isBGGroup())
         return;
 
-    // method can be INSTANCE_RESET_ALL, INSTANCE_RESET_CHANGE_DIFFICULTY, INSTANCE_RESET_GROUP_DISBAND
+    // method can be INSTANCE_RESET_ALL or INSTANCE_RESET_GROUP_DISBAND
 
-    // we assume that when the difficulty changes, all instances that can be reset will be
-    Difficulty diff = GetDifficulty(isRaid);
-
-    for (BoundInstancesMap::iterator itr = m_boundInstances[diff].begin(); itr != m_boundInstances[diff].end();)
+    for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end();)
     {
         InstanceSave* instanceSave = itr->second.save;
         const MapEntry* entry = sMapStore.LookupEntry(itr->first);
@@ -1685,7 +1623,7 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* SendMsgTo)
         if (method == INSTANCE_RESET_ALL)
         {
             // the "reset all instances" method can only reset normal maps
-            if (entry->map_type == MAP_RAID || diff == DUNGEON_DIFFICULTY_HEROIC)
+            if (entry->map_type == MAP_RAID)
             {
                 ++itr;
                 continue;
@@ -1711,7 +1649,7 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* SendMsgTo)
                 SendMsgTo->SendResetInstanceFailed(0, instanceSave->GetMapId());
         }
 
-        if (isEmpty || method == INSTANCE_RESET_GROUP_DISBAND || method == INSTANCE_RESET_CHANGE_DIFFICULTY)
+        if (isEmpty || method == INSTANCE_RESET_GROUP_DISBAND)
         {
             // do not reset the instance, just unbind if others are permanently bound to it
             if (instanceSave->CanReset())
@@ -1727,8 +1665,8 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* SendMsgTo)
 
 
             // i don't know for sure if hash_map iterators
-            m_boundInstances[diff].erase(itr);
-            itr = m_boundInstances[diff].begin();
+            m_boundInstances.erase(itr);
+            itr = m_boundInstances.begin();
             // this unloads the instance save unless online players are bound to it
             // (eg. permanent binds or GM solo binds)
             instanceSave->RemoveGroup(this);
@@ -1744,11 +1682,11 @@ InstanceGroupBind* Group::GetBoundInstance(Player* player)
     MapEntry const* mapEntry = sMapStore.LookupEntry(mapid);
     return GetBoundInstance(mapEntry);
 }
-
+//! TrinityZero note: ...
 InstanceGroupBind* Group::GetBoundInstance(Map* aMap)
 {
     // Currently spawn numbering not different from map difficulty
-    Difficulty difficulty = GetDifficulty(aMap->IsRaid());
+    /*Difficulty difficulty = GetDifficulty(aMap->IsRaid());
 
     // some instances only have one difficulty
     GetDownscaledMapDifficultyData(aMap->GetId(), difficulty);
@@ -1756,13 +1694,13 @@ InstanceGroupBind* Group::GetBoundInstance(Map* aMap)
     BoundInstancesMap::iterator itr = m_boundInstances[difficulty].find(aMap->GetId());
     if (itr != m_boundInstances[difficulty].end())
         return &itr->second;
-    else
+    else*/
         return NULL;
 }
-
+//! TrinityZero note: ...
 InstanceGroupBind* Group::GetBoundInstance(MapEntry const* mapEntry)
 {
-    if (!mapEntry)
+    /*if (!mapEntry)
         return NULL;
 
     Difficulty difficulty = GetDifficulty(mapEntry->IsRaid());
@@ -1773,7 +1711,7 @@ InstanceGroupBind* Group::GetBoundInstance(MapEntry const* mapEntry)
     BoundInstancesMap::iterator itr = m_boundInstances[difficulty].find(mapEntry->MapID);
     if (itr != m_boundInstances[difficulty].end())
         return &itr->second;
-    else
+    else*/
         return NULL;
 }
 
@@ -1782,15 +1720,13 @@ InstanceGroupBind* Group::BindToInstance(InstanceSave* save, bool permanent, boo
     if (!save || isBGGroup())
         return NULL;
 
-    InstanceGroupBind& bind = m_boundInstances[save->GetDifficulty()][save->GetMapId()];
+    InstanceGroupBind& bind = m_boundInstances[save->GetMapId()];
     if (!load && (!bind.save || permanent != bind.perm || save != bind.save))
     {
         PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_GROUP_INSTANCE);
-
         stmt->setUInt32(0, m_dbStoreId);
         stmt->setUInt32(1, save->GetInstanceId());
         stmt->setBool(2, permanent);
-
         CharacterDatabase.Execute(stmt);
     }
 
@@ -1804,16 +1740,16 @@ InstanceGroupBind* Group::BindToInstance(InstanceSave* save, bool permanent, boo
     bind.save = save;
     bind.perm = permanent;
     if (!load)
-        sLog->outDebug(LOG_FILTER_MAPS, "Group::BindToInstance: Group (guid: %u, storage id: %u) is now bound to map %d, instance %d, difficulty %d",
-        GUID_LOPART(GetGUID()), m_dbStoreId, save->GetMapId(), save->GetInstanceId(), save->GetDifficulty());
+        sLog->outDebug(LOG_FILTER_MAPS, "Group::BindToInstance: Group (guid: %u, storage id: %u) is now bound to map %d, instance %d",
+        GUID_LOPART(GetGUID()), m_dbStoreId, save->GetMapId(), save->GetInstanceId());
 
     return &bind;
 }
 
-void Group::UnbindInstance(uint32 mapid, uint8 difficulty, bool unload)
+void Group::UnbindInstance(uint32 mapid, bool unload)
 {
-    BoundInstancesMap::iterator itr = m_boundInstances[difficulty].find(mapid);
-    if (itr != m_boundInstances[difficulty].end())
+    BoundInstancesMap::iterator itr = m_boundInstances.find(mapid);
+    if (itr != m_boundInstances.end())
     {
         if (!unload)
         {
@@ -1821,12 +1757,11 @@ void Group::UnbindInstance(uint32 mapid, uint8 difficulty, bool unload)
 
             stmt->setUInt32(0, m_dbStoreId);
             stmt->setUInt32(1, itr->second.save->GetInstanceId());
-
             CharacterDatabase.Execute(stmt);
         }
 
         itr->second.save->RemoveGroup(this);                // save can become invalid
-        m_boundInstances[difficulty].erase(itr);
+        m_boundInstances.erase(itr);
     }
 }
 
@@ -2035,21 +1970,6 @@ void Group::SetGroupMemberFlag(uint64 guid, bool apply, GroupMemberFlags flag)
     SendUpdate();
 }
 
-Difficulty Group::GetDifficulty(bool isRaid) const
-{
-    return isRaid ? m_raidDifficulty : m_dungeonDifficulty;
-}
-
-Difficulty Group::GetDungeonDifficulty() const
-{
-    return m_dungeonDifficulty;
-}
-
-Difficulty Group::GetRaidDifficulty() const
-{
-    return m_raidDifficulty;
-}
-
 bool Group::isRollLootActive() const
 {
     return !RollId.empty();
@@ -2084,9 +2004,9 @@ void Group::DelinkMember(uint64 guid)
     }
 }
 
-Group::BoundInstancesMap& Group::GetBoundInstances(Difficulty difficulty)
+Group::BoundInstancesMap& Group::GetBoundInstances()
 {
-    return m_boundInstances[difficulty];
+    return m_boundInstances;
 }
 
 void Group::_initRaidSubGroupsCounter()

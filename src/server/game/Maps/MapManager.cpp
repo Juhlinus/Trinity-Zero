@@ -109,7 +109,7 @@ Map* MapManager::CreateBaseMap(uint32 id)
         }
         else
         {
-            map = new Map(id, i_gridCleanUpDelay, 0, REGULAR_DIFFICULTY);
+            map = new Map(id, i_gridCleanUpDelay, 0);
             map->LoadRespawnTimes();
         }
         i_maps[id] = map;
@@ -161,21 +161,6 @@ bool MapManager::CanPlayerEnter(uint32 mapid, Player* player, bool loginCheck)
     InstanceTemplate const* instance = sObjectMgr->GetInstanceTemplate(mapid);
     if (!instance)
         return false;
-
-    Difficulty targetDifficulty = player->GetDifficulty(entry->IsRaid());
-    //The player has a heroic mode and tries to enter into instance which has no a heroic mode
-    MapDifficulty const* mapDiff = GetMapDifficultyData(entry->MapID, targetDifficulty);
-    if (!mapDiff)
-    {
-        // Send aborted message for dungeons
-        if (entry->IsNonRaidDungeon())
-        {
-            player->SendTransferAborted(mapid, TRANSFER_ABORT_DIFFICULTY, player->GetDungeonDifficulty());
-            return false;
-        }
-        else    // attempt to downscale
-            mapDiff = GetDownscaledMapDifficultyData(entry->MapID, targetDifficulty);
-    }
 
     //Bypass checks for GMs
     if (player->isGameMaster())
@@ -235,16 +220,6 @@ bool MapManager::CanPlayerEnter(uint32 mapid, Player* player, bool loginCheck)
             if (Map* boundMap = sMapMgr->FindMap(mapid, boundInstance->save->GetInstanceId()))
                 if (!loginCheck && !boundMap->CanEnter(player))
                     return false;
-            /*
-                This check has to be moved to InstanceMap::CanEnter()
-                // Player permanently bounded to different instance than groups one
-                InstancePlayerBind* playerBoundedInstance = player->GetBoundInstance(mapid, player->GetDifficulty(entry->IsRaid()));
-                if (playerBoundedInstance && playerBoundedInstance->perm && playerBoundedInstance->save &&
-                    boundedInstance->save->GetInstanceId() != playerBoundedInstance->save->GetInstanceId())
-                {
-                    //TODO: send some kind of error message to the player
-                    return false;
-                }*/
     }
 
     // players are only allowed to enter 5 instances per hour
@@ -263,7 +238,7 @@ bool MapManager::CanPlayerEnter(uint32 mapid, Player* player, bool loginCheck)
     }
 
     //Other requirements
-    return player->Satisfy(sObjectMgr->GetAccessRequirement(mapid, targetDifficulty), mapid, true);
+    return player->Satisfy(sObjectMgr->GetAccessRequirement(mapid), mapid, true);
 }
 
 void MapManager::Update(uint32 diff)

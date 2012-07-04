@@ -218,8 +218,6 @@ class spell_pal_righteous_defense : public SpellScriptLoader
 
 void AddSC_paladin_spell_scripts()
 {
-    new spell_pal_blessing_of_faith();
-    new spell_pal_guarded_by_the_light();
     new spell_pal_holy_shock();
     new spell_pal_judgement_of_command();
     new spell_pal_lay_on_hands();

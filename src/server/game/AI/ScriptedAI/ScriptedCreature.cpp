@@ -93,11 +93,7 @@ ScriptedAI::ScriptedAI(Creature* creature) : CreatureAI(creature),
     me(creature),
     IsFleeing(false),
     _evadeCheckCooldown(2500),
-    _isCombatMovementAllowed(true)
-{
-    _isHeroic = me->GetMap()->IsHeroic();
-    _difficulty = Difficulty(me->GetMap()->GetSpawnMode());
-}
+    _isCombatMovementAllowed(true) { }
 
 void ScriptedAI::AttackStartNoMove(Unit* who)
 {

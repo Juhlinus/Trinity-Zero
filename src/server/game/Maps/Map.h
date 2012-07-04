@@ -214,11 +214,6 @@ struct InstanceTemplate
     bool AllowMount;
 };
 
-enum LevelRequirementVsMode
-{
-    LEVELREQUIREMENT_HEROIC = 70
-};
-
 #if defined(__GNUC__)
 #pragma pack()
 #else
@@ -237,7 +232,7 @@ class Map : public GridRefManager<NGridType>
 {
     friend class MapReference;
     public:
-        Map(uint32 id, time_t, uint32 InstanceId, uint8 SpawnMode, Map* _parent = NULL);
+        Map(uint32 id, time_t, uint32 InstanceId, Map* _parent = NULL);
         virtual ~Map();
 
         MapEntry const* GetEntry() const { return i_mapEntry; }
@@ -351,22 +346,13 @@ class Map : public GridRefManager<NGridType>
         bool CheckGridIntegrity(Creature* c, bool moved) const;
 
         uint32 GetInstanceId() const { return i_InstanceId; }
-        uint8 GetSpawnMode() const { return (i_spawnMode); }
         virtual bool CanEnter(Player* /*player*/) { return true; }
         const char* GetMapName() const;
-
-        // have meaning only for instanced map (that have set real difficulty)
-        Difficulty GetDifficulty() const { return Difficulty(GetSpawnMode()); }
-        bool IsRegularDifficulty() const { return GetDifficulty() == REGULAR_DIFFICULTY; }
-        MapDifficulty const* GetMapDifficulty() const;
 
         bool Instanceable() const { return i_mapEntry && i_mapEntry->Instanceable(); }
         bool IsDungeon() const { return i_mapEntry && i_mapEntry->IsDungeon(); }
         bool IsNonRaidDungeon() const { return i_mapEntry && i_mapEntry->IsNonRaidDungeon(); }
         bool IsRaid() const { return i_mapEntry && i_mapEntry->IsRaid(); }
-        bool IsRaidOrHeroicDungeon() const { return IsRaid() || i_spawnMode > DUNGEON_DIFFICULTY_NORMAL; }
-        bool IsHeroic() const { return IsRaid() ? i_spawnMode >= RAID_DIFFICULTY_10MAN_HEROIC : i_spawnMode >= DUNGEON_DIFFICULTY_HEROIC; }
-        bool Is25ManRaid() const { return IsRaid() && i_spawnMode & RAID_DIFFICULTY_MASK_25MAN; }   // since 25man difficulties are 1 and 3, we can check them like that
         bool IsBattleground() const { return i_mapEntry && i_mapEntry->IsBattleground(); }
         bool GetEntrancePos(int32 &mapid, float &x, float &y)
         {
@@ -525,7 +511,6 @@ class Map : public GridRefManager<NGridType>
         ACE_Thread_Mutex Lock;
 
         MapEntry const* i_mapEntry;
-        uint8 i_spawnMode;
         uint32 i_InstanceId;
         uint32 m_unloadTimer;
         float m_VisibleDistance;
@@ -609,7 +594,7 @@ class Map : public GridRefManager<NGridType>
 enum InstanceResetMethod
 {
     INSTANCE_RESET_ALL,
-    INSTANCE_RESET_CHANGE_DIFFICULTY,
+    //INSTANCE_RESET_CHANGE_DIFFICULTY,
     INSTANCE_RESET_GLOBAL,
     INSTANCE_RESET_GROUP_DISBAND,
     INSTANCE_RESET_GROUP_JOIN,
@@ -619,7 +604,7 @@ enum InstanceResetMethod
 class InstanceMap : public Map
 {
     public:
-        InstanceMap(uint32 id, time_t, uint32 InstanceId, uint8 SpawnMode, Map* _parent);
+        InstanceMap(uint32 id, time_t, uint32 InstanceId, Map* _parent);
         ~InstanceMap();
         bool AddPlayerToMap(Player*);
         void RemovePlayerFromMap(Player*, bool);
@@ -648,7 +633,7 @@ class InstanceMap : public Map
 class BattlegroundMap : public Map
 {
     public:
-        BattlegroundMap(uint32 id, time_t, uint32 InstanceId, Map* _parent, uint8 spawnMode);
+        BattlegroundMap(uint32 id, time_t, uint32 InstanceId, Map* _parent);
         ~BattlegroundMap();
 
         bool AddPlayerToMap(Player*);

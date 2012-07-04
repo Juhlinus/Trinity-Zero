@@ -364,21 +364,21 @@ void ObjectMgr::LoadCreatureTemplates()
 {
     uint32 oldMSTime = getMSTime();
 
-    //                                                 0              1                 2                  3                 4            5           6        7         8
-    QueryResult result = WorldDatabase.Query("SELECT entry, difficulty_entry_1, difficulty_entry_2, difficulty_entry_3, KillCredit1, KillCredit2, modelid1, modelid2, modelid3, "
-    //                                           9       10      11       12           13           14        15        16         17        18        19          20
+    //                                                 0    1            2            3        4          5
+    QueryResult result = WorldDatabase.Query("SELECT entry, KillCredit1, KillCredit2, modelid1, modelid2, modelid3, "
+    //                                           6       7      8       9           10           11        12        13         14        15        16          17
                                              "modelid4, name, subname, IconName, gossip_menu_id, minlevel, maxlevel, faction_A, faction_H, npcflag, speed_walk, speed_run, "
-    //                                         21     22     23     24        25          26             27              28                29           30          31
+    //                                         18     19     20     21        22          23             24              25                26           27          28
                                              "scale, rank, mindmg, maxdmg, dmgschool, attackpower, dmg_multiplier, baseattacktime, rangeattacktime, unit_class, unit_flags, "
-    //                                             32         33         34             35             36             37          38           39              40           41
+    //                                             29         30         31             32             33             34          35           36              37           38
                                              "dynamicflags, family, trainer_type, trainer_spell, trainer_class, trainer_race, minrangedmg, maxrangedmg, rangedattackpower, type, "
-    //                                            42        43          44           45          46          47           48           49           50           51         52
+    //                                            39        40          41           42          43          44           45           46           47           48         49
                                              "type_flags, lootid, pickpocketloot, skinloot, resistance1, resistance2, resistance3, resistance4, resistance5, resistance6, spell1, "
-    //                                          53      54      55      56      57      58      59          60          61       62       63       64
+    //                                          50      51      52      53      54      55      56          57          58       59       60       61
                                              "spell2, spell3, spell4, spell5, spell6, spell7, spell8, PetSpellDataId, mingold, maxgold, AIName, MovementType, "
-    //                                             65          66         67         68          69           70          71          72          73          74          75
+    //                                             62          63         64         65          66           67          68          69          70          71          72
                                              "InhabitType, HoverHeight, Health_mod, Mana_mod, Armor_mod, RacialLeader, questItem1, questItem2, questItem3, questItem4, questItem5, "
-    //                                            76           77           78               79                80           81          82
+    //                                            73           74           75               76                77           78          79
                                              " questItem6, movementId, RegenHealth, equipment_id, mechanic_immune_mask, flags_extra, ScriptName "
                                              "FROM creature_template;");
 
@@ -394,96 +394,85 @@ void ObjectMgr::LoadCreatureTemplates()
     do
     {
         Field* fields = result->Fetch();
-
         uint32 entry = fields[0].GetUInt32();
-
-
         CreatureTemplate& creatureTemplate = _creatureTemplateStore[entry];
-
         creatureTemplate.Entry = entry;
 
-        for (uint8 i = 0; i < MAX_DIFFICULTY - 1; ++i)
-            creatureTemplate.DifficultyEntry[i] = fields[1 + i].GetUInt32();
-
         for (uint8 i = 0; i < MAX_KILL_CREDIT; ++i)
-            creatureTemplate.KillCredit[i] = fields[4 + i].GetUInt32();
+            creatureTemplate.KillCredit[i] = fields[1 + i].GetUInt32();
 
-        creatureTemplate.Modelid1          = fields[6].GetUInt32();
-        creatureTemplate.Modelid2          = fields[7].GetUInt32();
-        creatureTemplate.Modelid3          = fields[8].GetUInt32();
-        creatureTemplate.Modelid4          = fields[9].GetUInt32();
-        creatureTemplate.Name              = fields[10].GetString();
-        creatureTemplate.SubName           = fields[11].GetString();
-        creatureTemplate.IconName          = fields[12].GetString();
-        creatureTemplate.GossipMenuId      = fields[13].GetUInt32();
-        creatureTemplate.minlevel          = fields[14].GetUInt8();
-        creatureTemplate.maxlevel          = fields[15].GetUInt8();
-        creatureTemplate.faction_A         = uint32(fields[16].GetUInt16());
-        creatureTemplate.faction_H         = uint32(fields[17].GetUInt16());
-        creatureTemplate.npcflag           = fields[18].GetUInt32();
-        creatureTemplate.speed_walk        = fields[19].GetFloat();
-        creatureTemplate.speed_run         = fields[20].GetFloat();
-        creatureTemplate.scale             = fields[21].GetFloat();
-        creatureTemplate.rank              = uint32(fields[22].GetUInt8());
-        creatureTemplate.mindmg            = fields[23].GetFloat();
-        creatureTemplate.maxdmg            = fields[24].GetFloat();
-        creatureTemplate.dmgschool         = uint32(fields[25].GetInt8());
-        creatureTemplate.attackpower       = fields[26].GetUInt32();
-        creatureTemplate.dmg_multiplier    = fields[27].GetFloat();
-        creatureTemplate.baseattacktime    = fields[28].GetUInt32();
-        creatureTemplate.rangeattacktime   = fields[29].GetUInt32();
-        creatureTemplate.unit_class        = uint32(fields[30].GetUInt8());
-        creatureTemplate.unit_flags        = fields[31].GetUInt32();
-        creatureTemplate.dynamicflags      = fields[32].GetUInt32();
-        creatureTemplate.family            = uint32(fields[33].GetUInt8());
-        creatureTemplate.trainer_type      = uint32(fields[34].GetUInt8());
-        creatureTemplate.trainer_spell     = fields[35].GetUInt32();
-        creatureTemplate.trainer_class     = uint32(fields[36].GetUInt8());
-        creatureTemplate.trainer_race      = uint32(fields[37].GetUInt8());
-        creatureTemplate.minrangedmg       = fields[38].GetFloat();
-        creatureTemplate.maxrangedmg       = fields[39].GetFloat();
-        creatureTemplate.rangedattackpower = uint32(fields[40].GetUInt16());
-        creatureTemplate.type              = uint32(fields[41].GetUInt8());
-        creatureTemplate.type_flags        = fields[42].GetUInt32();
-        creatureTemplate.lootid            = fields[43].GetUInt32();
-        creatureTemplate.pickpocketLootId  = fields[44].GetUInt32();
-        creatureTemplate.SkinLootId        = fields[45].GetUInt32();
+        creatureTemplate.Modelid1          = fields[3].GetUInt32();
+        creatureTemplate.Modelid2          = fields[4].GetUInt32();
+        creatureTemplate.Modelid3          = fields[5].GetUInt32();
+        creatureTemplate.Modelid4          = fields[6].GetUInt32();
+        creatureTemplate.Name              = fields[7].GetString();
+        creatureTemplate.SubName           = fields[8].GetString();
+        creatureTemplate.IconName          = fields[9].GetString();
+        creatureTemplate.GossipMenuId      = fields[10].GetUInt32();
+        creatureTemplate.minlevel          = fields[11].GetUInt8();
+        creatureTemplate.maxlevel          = fields[12].GetUInt8();
+        creatureTemplate.faction_A         = uint32(fields[13].GetUInt16());
+        creatureTemplate.faction_H         = uint32(fields[14].GetUInt16());
+        creatureTemplate.npcflag           = fields[15].GetUInt32();
+        creatureTemplate.speed_walk        = fields[16].GetFloat();
+        creatureTemplate.speed_run         = fields[17].GetFloat();
+        creatureTemplate.scale             = fields[18].GetFloat();
+        creatureTemplate.rank              = uint32(fields[19].GetUInt8());
+        creatureTemplate.mindmg            = fields[20].GetFloat();
+        creatureTemplate.maxdmg            = fields[21].GetFloat();
+        creatureTemplate.dmgschool         = uint32(fields[22].GetInt8());
+        creatureTemplate.attackpower       = fields[23].GetUInt32();
+        creatureTemplate.dmg_multiplier    = fields[24].GetFloat();
+        creatureTemplate.baseattacktime    = fields[25].GetUInt32();
+        creatureTemplate.rangeattacktime   = fields[26].GetUInt32();
+        creatureTemplate.unit_class        = uint32(fields[27].GetUInt8());
+        creatureTemplate.unit_flags        = fields[28].GetUInt32();
+        creatureTemplate.dynamicflags      = fields[29].GetUInt32();
+        creatureTemplate.family            = uint32(fields[30].GetUInt8());
+        creatureTemplate.trainer_type      = uint32(fields[31].GetUInt8());
+        creatureTemplate.trainer_spell     = fields[32].GetUInt32();
+        creatureTemplate.trainer_class     = uint32(fields[33].GetUInt8());
+        creatureTemplate.trainer_race      = uint32(fields[34].GetUInt8());
+        creatureTemplate.minrangedmg       = fields[35].GetFloat();
+        creatureTemplate.maxrangedmg       = fields[36].GetFloat();
+        creatureTemplate.rangedattackpower = uint32(fields[37].GetUInt16());
+        creatureTemplate.type              = uint32(fields[38].GetUInt8());
+        creatureTemplate.type_flags        = fields[39].GetUInt32();
+        creatureTemplate.lootid            = fields[40].GetUInt32();
+        creatureTemplate.pickpocketLootId  = fields[41].GetUInt32();
+        creatureTemplate.SkinLootId        = fields[42].GetUInt32();
 
         for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-            creatureTemplate.resistance[i] = fields[46 + i -1].GetInt16();
+            creatureTemplate.resistance[i] = fields[43 + i -1].GetInt16();
 
         for (uint8 i = 0; i < CREATURE_MAX_SPELLS; ++i)
-            creatureTemplate.spells[i] = fields[52 + i].GetUInt32();
+            creatureTemplate.spells[i] = fields[49 + i].GetUInt32();
 
-        creatureTemplate.PetSpellDataId = fields[60].GetUInt32();
-        creatureTemplate.mingold        = fields[61].GetUInt32();
-        creatureTemplate.maxgold        = fields[62].GetUInt32();
-        creatureTemplate.AIName         = fields[63].GetString();
-        creatureTemplate.MovementType   = uint32(fields[64].GetUInt8());
-        creatureTemplate.InhabitType    = uint32(fields[65].GetUInt8());
-        creatureTemplate.HoverHeight    = fields[66].GetFloat();
-        creatureTemplate.ModHealth      = fields[67].GetFloat();
-        creatureTemplate.ModMana        = fields[68].GetFloat();
-        creatureTemplate.ModArmor       = fields[69].GetFloat();
-        creatureTemplate.RacialLeader   = fields[70].GetBool();
+        creatureTemplate.PetSpellDataId = fields[57].GetUInt32();
+        creatureTemplate.mingold        = fields[58].GetUInt32();
+        creatureTemplate.maxgold        = fields[59].GetUInt32();
+        creatureTemplate.AIName         = fields[60].GetString();
+        creatureTemplate.MovementType   = uint32(fields[61].GetUInt8());
+        creatureTemplate.InhabitType    = uint32(fields[62].GetUInt8());
+        creatureTemplate.HoverHeight    = fields[63].GetFloat();
+        creatureTemplate.ModHealth      = fields[64].GetFloat();
+        creatureTemplate.ModMana        = fields[65].GetFloat();
+        creatureTemplate.ModArmor       = fields[66].GetFloat();
+        creatureTemplate.RacialLeader   = fields[67].GetBool();
 
         for (uint8 i = 0; i < MAX_CREATURE_QUEST_ITEMS; ++i)
-            creatureTemplate.questItems[i] = fields[71 + i].GetUInt32();
+            creatureTemplate.questItems[i] = fields[68 + i].GetUInt32();
 
-        creatureTemplate.movementId         = fields[77].GetUInt32();
-        creatureTemplate.RegenHealth        = fields[78].GetBool();
-        creatureTemplate.equipmentId        = fields[79].GetUInt32();
-        creatureTemplate.MechanicImmuneMask = fields[80].GetUInt32();
-        creatureTemplate.flags_extra        = fields[81].GetUInt32();
-        creatureTemplate.ScriptID           = GetScriptId(fields[82].GetCString());
+        creatureTemplate.movementId         = fields[74].GetUInt32();
+        creatureTemplate.RegenHealth        = fields[75].GetBool();
+        creatureTemplate.equipmentId        = fields[76].GetUInt32();
+        creatureTemplate.MechanicImmuneMask = fields[77].GetUInt32();
+        creatureTemplate.flags_extra        = fields[78].GetUInt32();
+        creatureTemplate.ScriptID           = GetScriptId(fields[79].GetCString());
 
         ++count;
     }
     while (result->NextRow());
-
-    // Checking needs to be done after loading because of the difficulty self referencing
-    for (CreatureTemplateContainer::const_iterator itr = _creatureTemplateStore.begin(); itr != _creatureTemplateStore.end(); ++itr)
-        CheckCreatureTemplate(&itr->second);
 
     sLog->outString(">> Loaded %u creature definitions in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     sLog->outString();
@@ -565,105 +554,6 @@ void ObjectMgr::CheckCreatureTemplate(CreatureTemplate const* cInfo)
 {
     if (!cInfo)
         return;
-
-    bool ok = true;                                     // bool to allow continue outside this loop
-    for (uint32 diff = 0; diff < MAX_DIFFICULTY - 1 && ok; ++diff)
-    {
-        if (!cInfo->DifficultyEntry[diff])
-            continue;
-        ok = false;                                     // will be set to true at the end of this loop again
-
-        CreatureTemplate const* difficultyInfo = GetCreatureTemplate(cInfo->DifficultyEntry[diff]);
-        if (!difficultyInfo)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) has `difficulty_entry_%u`=%u but creature entry %u does not exist.",
-                cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff], cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        bool ok2 = true;
-        for (uint32 diff2 = 0; diff2 < MAX_DIFFICULTY - 1 && ok2; ++diff2)
-        {
-            ok2 = false;
-            if (_difficultyEntries[diff2].find(cInfo->Entry) != _difficultyEntries[diff2].end())
-            {
-                sLog->outErrorDb("Creature (Entry: %u) is listed as `difficulty_entry_%u` of another creature, but itself lists %u in `difficulty_entry_%u`.",
-                    cInfo->Entry, diff2 + 1, cInfo->DifficultyEntry[diff], diff + 1);
-                continue;
-            }
-
-            if (_difficultyEntries[diff2].find(cInfo->DifficultyEntry[diff]) != _difficultyEntries[diff2].end())
-            {
-                sLog->outErrorDb("Creature (Entry: %u) already listed as `difficulty_entry_%u` for another entry.", cInfo->DifficultyEntry[diff], diff2 + 1);
-                continue;
-            }
-
-            if (_hasDifficultyEntries[diff2].find(cInfo->DifficultyEntry[diff]) != _hasDifficultyEntries[diff2].end())
-            {
-                sLog->outErrorDb("Creature (Entry: %u) has `difficulty_entry_%u`=%u but creature entry %u has itself a value in `difficulty_entry_%u`.",
-                    cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff], cInfo->DifficultyEntry[diff], diff2 + 1);
-                continue;
-            }
-            ok2 = true;
-        }
-        if (!ok2)
-            continue;
-
-        if (cInfo->unit_class != difficultyInfo->unit_class)
-        {
-            sLog->outErrorDb("Creature (Entry: %u, class %u) has different `unit_class` in difficulty %u mode (Entry: %u, class %u).",
-                cInfo->Entry, cInfo->unit_class, diff + 1, cInfo->DifficultyEntry[diff], difficultyInfo->unit_class);
-            continue;
-        }
-
-        if (cInfo->npcflag != difficultyInfo->npcflag)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) has different `npcflag` in difficulty %u mode (Entry: %u).", cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        if (cInfo->trainer_class != difficultyInfo->trainer_class)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) has different `trainer_class` in difficulty %u mode (Entry: %u).", cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        if (cInfo->trainer_race != difficultyInfo->trainer_race)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) has different `trainer_race` in difficulty %u mode (Entry: %u).", cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        if (cInfo->trainer_type != difficultyInfo->trainer_type)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) has different `trainer_type` in difficulty %u mode (Entry: %u).", cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        if (cInfo->trainer_spell != difficultyInfo->trainer_spell)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) has different `trainer_spell` in difficulty %u mode (Entry: %u).", cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        if (!difficultyInfo->AIName.empty())
-        {
-            sLog->outErrorDb("Creature (Entry: %u) lists difficulty %u mode entry %u with `AIName` filled in. `AIName` of difficulty 0 mode creature is always used instead.",
-                cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        if (difficultyInfo->ScriptID)
-        {
-            sLog->outErrorDb("Creature (Entry: %u) lists difficulty %u mode entry %u with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.",
-                cInfo->Entry, diff + 1, cInfo->DifficultyEntry[diff]);
-            continue;
-        }
-
-        _hasDifficultyEntries[diff].insert(cInfo->Entry);
-        _difficultyEntries[diff].insert(cInfo->DifficultyEntry[diff]);
-        ok = true;
-    }
 
     FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(cInfo->faction_A);
     if (!factionTemplate)
@@ -1197,13 +1087,6 @@ void ObjectMgr::LoadLinkedRespawn()
                     break;
                 }
 
-                if (!(master->spawnMask & slave->spawnMask))  // they must have a possibility to meet (normal/heroic difficulty)
-                {
-                    sLog->outErrorDb("LinkedRespawn: Creature '%u' linking to '%u' with not corresponding spawnMask", guidLow, linkedGuidLow);
-                    error = true;
-                    break;
-                }
-
                 guid = MAKE_NEW_GUID(guidLow, slave->id, HIGHGUID_UNIT);
                 linkedGuid = MAKE_NEW_GUID(linkedGuidLow, master->id, HIGHGUID_UNIT);
                 break;
@@ -1230,13 +1113,6 @@ void ObjectMgr::LoadLinkedRespawn()
                 if (!map || !map->Instanceable() || (master->mapid != slave->mapid))
                 {
                     sLog->outErrorDb("Creature '%u' linking to '%u' on an unpermitted map.", guidLow, linkedGuidLow);
-                    error = true;
-                    break;
-                }
-
-                if (!(master->spawnMask & slave->spawnMask))  // they must have a possibility to meet (normal/heroic difficulty)
-                {
-                    sLog->outErrorDb("LinkedRespawn: Creature '%u' linking to '%u' with not corresponding spawnMask", guidLow, linkedGuidLow);
                     error = true;
                     break;
                 }
@@ -1271,13 +1147,6 @@ void ObjectMgr::LoadLinkedRespawn()
                     break;
                 }
 
-                if (!(master->spawnMask & slave->spawnMask))  // they must have a possibility to meet (normal/heroic difficulty)
-                {
-                    sLog->outErrorDb("LinkedRespawn: Creature '%u' linking to '%u' with not corresponding spawnMask", guidLow, linkedGuidLow);
-                    error = true;
-                    break;
-                }
-
                 guid = MAKE_NEW_GUID(guidLow, slave->id, HIGHGUID_GAMEOBJECT);
                 linkedGuid = MAKE_NEW_GUID(linkedGuidLow, master->id, HIGHGUID_GAMEOBJECT);
                 break;
@@ -1304,13 +1173,6 @@ void ObjectMgr::LoadLinkedRespawn()
                 if (!map || !map->Instanceable() || (master->mapid != slave->mapid))
                 {
                     sLog->outErrorDb("Creature '%u' linking to '%u' on an unpermitted map.", guidLow, linkedGuidLow);
-                    error = true;
-                    break;
-                }
-
-                if (!(master->spawnMask & slave->spawnMask))  // they must have a possibility to meet (normal/heroic difficulty)
-                {
-                    sLog->outErrorDb("LinkedRespawn: Creature '%u' linking to '%u' with not corresponding spawnMask", guidLow, linkedGuidLow);
                     error = true;
                     break;
                 }
@@ -1356,12 +1218,6 @@ bool ObjectMgr::SetCreatureLinkedRespawn(uint32 guidLow, uint32 linkedGuidLow)
         return false;
     }
 
-    if (!(master->spawnMask & slave->spawnMask))  // they must have a possibility to meet (normal/heroic difficulty)
-    {
-        sLog->outErrorDb("LinkedRespawn: Creature '%u' linking to '%u' with not corresponding spawnMask", guidLow, linkedGuidLow);
-        return false;
-    }
-
     uint64 linkedGuid = MAKE_NEW_GUID(linkedGuidLow, slave->id, HIGHGUID_UNIT);
 
     _linkedRespawnStore[guid] = linkedGuid;
@@ -1379,7 +1235,7 @@ void ObjectMgr::LoadCreatures()
     //                                               0              1   2    3        4             5           6           7           8            9              10
     QueryResult result = WorldDatabase.Query("SELECT creature.guid, id, map, modelid, equipment_id, position_x, position_y, position_z, orientation, spawntimesecs, spawndist, "
     //   11               12         13       14            15         16         17          18          19                20                   21
-        "currentwaypoint, curhealth, curmana, MovementType, spawnMask, phaseMask, eventEntry, pool_entry, creature.npcflag, creature.unit_flags, creature.dynamicflags "
+        "currentwaypoint, curhealth, curmana, MovementType, phaseMask, eventEntry, pool_entry, creature.npcflag, creature.unit_flags, creature.dynamicflags "
         "FROM creature "
         "LEFT OUTER JOIN game_event_creature ON creature.guid = game_event_creature.guid "
         "LEFT OUTER JOIN pool_creature ON creature.guid = pool_creature.guid");
@@ -1390,14 +1246,6 @@ void ObjectMgr::LoadCreatures()
         sLog->outString();
         return;
     }
-
-    // Build single time for check spawnmask
-    std::map<uint32, uint32> spawnMasks;
-    for (uint32 i = 0; i < sMapStore.GetNumRows(); ++i)
-        if (sMapStore.LookupEntry(i))
-            for (int k = 0; k < MAX_DIFFICULTY; ++k)
-                if (GetMapDifficultyData(i, Difficulty(k)))
-                    spawnMasks[i] |= (1 << k);
 
     _creatureDataStore.rehash(result->GetRowCount());
     uint32 count = 0;
@@ -1430,13 +1278,12 @@ void ObjectMgr::LoadCreatures()
         data.curhealth      = fields[12].GetUInt32();
         data.curmana        = fields[13].GetUInt32();
         data.movementType   = fields[14].GetUInt8();
-        data.spawnMask      = fields[15].GetUInt8();
-        data.phaseMask      = fields[16].GetUInt16();
-        int16 gameEvent     = fields[17].GetInt8();
-        uint32 PoolId       = fields[18].GetUInt32();
-        data.npcflag        = fields[19].GetUInt32();
-        data.unit_flags     = fields[20].GetUInt32();
-        data.dynamicflags   = fields[21].GetUInt32();
+        data.phaseMask      = fields[15].GetUInt16();
+        int16 gameEvent     = fields[16].GetInt8();
+        uint32 PoolId       = fields[17].GetUInt32();
+        data.npcflag        = fields[18].GetUInt32();
+        data.unit_flags     = fields[19].GetUInt32();
+        data.dynamicflags   = fields[20].GetUInt32();
 
         MapEntry const* mapEntry = sMapStore.LookupEntry(data.mapid);
         if (!mapEntry)
@@ -1444,22 +1291,6 @@ void ObjectMgr::LoadCreatures()
             sLog->outErrorDb("Table `creature` have creature (GUID: %u) that spawned at not existed map (Id: %u), skipped.", guid, data.mapid);
             continue;
         }
-
-        if (data.spawnMask & ~spawnMasks[data.mapid])
-            sLog->outErrorDb("Table `creature` have creature (GUID: %u) that have wrong spawn mask %u including not supported difficulty modes for map (Id: %u).", guid, data.spawnMask, data.mapid);
-
-        bool ok = true;
-        for (uint32 diff = 0; diff < MAX_DIFFICULTY - 1 && ok; ++diff)
-        {
-            if (_difficultyEntries[diff].find(data.id) != _difficultyEntries[diff].end())
-            {
-                sLog->outErrorDb("Table `creature` have creature (GUID: %u) that listed as difficulty %u template (entry: %u) in `creature_template`, skipped.",
-                    guid, diff + 1, data.id);
-                ok = false;
-            }
-        }
-        if (!ok)
-            continue;
 
         // -1 no equipment, 0 use default
         if (data.equipmentId > 0)
@@ -1519,30 +1350,16 @@ void ObjectMgr::LoadCreatures()
 
 void ObjectMgr::AddCreatureToGrid(uint32 guid, CreatureData const* data)
 {
-    uint8 mask = data->spawnMask;
-    for (uint8 i = 0; mask != 0; i++, mask >>= 1)
-    {
-        if (mask & 1)
-        {
-            CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-            CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
-            cell_guids.creatures.insert(guid);
-        }
-    }
+    CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    cell_guids.creatures.insert(guid);
 }
 
 void ObjectMgr::RemoveCreatureFromGrid(uint32 guid, CreatureData const* data)
 {
-    uint8 mask = data->spawnMask;
-    for (uint8 i = 0; mask != 0; i++, mask >>= 1)
-    {
-        if (mask & 1)
-        {
-            CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-            CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
-            cell_guids.creatures.erase(guid);
-        }
-    }
+    CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    cell_guids.creatures.erase(guid);
 }
 
 uint32 ObjectMgr::AddGOData(uint32 entry, uint32 mapId, float x, float y, float z, float o, uint32 spawntimedelay, float rotation0, float rotation1, float rotation2, float rotation3)
@@ -1569,7 +1386,6 @@ uint32 ObjectMgr::AddGOData(uint32 entry, uint32 mapId, float x, float y, float 
     data.rotation3      = rotation3;
     data.spawntimesecs  = spawntimedelay;
     data.animprogress   = 100;
-    data.spawnMask      = 1;
     data.go_state       = GO_STATE_READY;
     data.phaseMask      = PHASEMASK_NORMAL;
     data.artKit         = goinfo->type == GAMEOBJECT_TYPE_CAPTURE_POINT ? 21 : 0;
@@ -1653,7 +1469,6 @@ uint32 ObjectMgr::AddCreData(uint32 entry, uint32 /*team*/, uint32 mapId, float 
     data.curhealth = stats->GenerateHealth(cInfo);
     data.curmana = stats->GenerateMana(cInfo);
     data.movementType = cInfo->MovementType;
-    data.spawnMask = 1;
     data.phaseMask = PHASEMASK_NORMAL;
     data.dbData = false;
     data.npcflag = cInfo->npcflag;
@@ -1689,8 +1504,8 @@ void ObjectMgr::LoadGameobjects()
 
     //                                                0                1   2    3           4           5           6
     QueryResult result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation, "
-    //   7          8          9          10         11             12            13     14         15         16          17
-        "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnMask, phaseMask, eventEntry, pool_entry "
+    //   7          8          9          10         11             12            13     14         15          16
+        "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, phaseMask, eventEntry, pool_entry "
         "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid "
         "LEFT OUTER JOIN pool_gameobject ON gameobject.guid = pool_gameobject.guid");
 
@@ -1700,14 +1515,6 @@ void ObjectMgr::LoadGameobjects()
         sLog->outString();
         return;
     }
-
-    // build single time for check spawnmask
-    std::map<uint32, uint32> spawnMasks;
-    for (uint32 i = 0; i < sMapStore.GetNumRows(); ++i)
-        if (sMapStore.LookupEntry(i))
-            for (int k = 0; k < MAX_DIFFICULTY; ++k)
-                if (GetMapDifficultyData(i, Difficulty(k)))
-                    spawnMasks[i] |= (1 << k);
 
     _gameObjectDataStore.rehash(result->GetRowCount());
     do
@@ -1778,13 +1585,8 @@ void ObjectMgr::LoadGameobjects()
             sLog->outErrorDb("Table `gameobject` has gameobject (GUID: %u Entry: %u) with invalid `state` (%u) value, skip", guid, data.id, go_state);
             continue;
         }
+
         data.go_state       = GOState(go_state);
-
-        data.spawnMask      = fields[14].GetUInt8();
-
-        if (data.spawnMask & ~spawnMasks[data.mapid])
-            sLog->outErrorDb("Table `gameobject` has gameobject (GUID: %u Entry: %u) that has wrong spawn mask %u including not supported difficulty modes for map (Id: %u), skip", guid, data.id, data.spawnMask, data.mapid);
-
         data.phaseMask      = fields[15].GetUInt16();
         int16 gameEvent     = fields[16].GetInt8();
         uint32 PoolId        = fields[17].GetUInt32();
@@ -1824,30 +1626,16 @@ void ObjectMgr::LoadGameobjects()
 
 void ObjectMgr::AddGameobjectToGrid(uint32 guid, GameObjectData const* data)
 {
-    uint8 mask = data->spawnMask;
-    for (uint8 i = 0; mask != 0; i++, mask >>= 1)
-    {
-        if (mask & 1)
-        {
-            CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-            CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
-            cell_guids.gameobjects.insert(guid);
-        }
-    }
+    CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    cell_guids.gameobjects.insert(guid);
 }
 
 void ObjectMgr::RemoveGameobjectFromGrid(uint32 guid, GameObjectData const* data)
 {
-    uint8 mask = data->spawnMask;
-    for (uint8 i = 0; mask != 0; i++, mask >>= 1)
-    {
-        if (mask & 1)
-        {
-            CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-            CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
-            cell_guids.gameobjects.erase(guid);
-        }
-    }
+    CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    cell_guids.gameobjects.erase(guid);
 }
 
 Player* ObjectMgr::GetPlayerByLowGUID(uint32 lowguid) const
@@ -5749,8 +5537,8 @@ void ObjectMgr::LoadAccessRequirements()
 
     _accessRequirementStore.clear();                                  // need for reload case
 
-    //                                               0      1           2          3          4     5      6             7             8 <REMOVED             9
-    QueryResult result = WorldDatabase.Query("SELECT mapid, difficulty, level_min, level_max, item, item2, quest_done_A, quest_done_H, quest_failed_text FROM access_requirement");
+    //                                               0      1          2         3      4      5             6             7
+    QueryResult result = WorldDatabase.Query("SELECT mapid, level_min, level_max, item, item2, quest_done_A, quest_done_H, quest_failed_text FROM access_requirement");
     if (!result)
     {
         sLog->outString(">> Loaded 0 access requirement definitions. DB table `access_requirement` is empty.");
@@ -5763,15 +5551,9 @@ void ObjectMgr::LoadAccessRequirements()
     do
     {
         Field* fields = result->Fetch();
-
         ++count;
-
         uint32 mapid = fields[0].GetUInt32();
-        uint8 difficulty = fields[1].GetUInt8();
-        uint32 requirement_ID = MAKE_PAIR32(mapid, difficulty);
-
         AccessRequirement ar;
-
         ar.levelMin                 = fields[2].GetUInt8();
         ar.levelMax                 = fields[3].GetUInt8();
         ar.item                     = fields[4].GetUInt32();
@@ -5785,7 +5567,7 @@ void ObjectMgr::LoadAccessRequirements()
             ItemTemplate const* pProto = GetItemTemplate(ar.item);
             if (!pProto)
             {
-                sLog->outError("Key item %u does not exist for map %u difficulty %u, removing key requirement.", ar.item, mapid, difficulty);
+                sLog->outError("Key item %u does not exist for map %u, removing key requirement.", ar.item, mapid);
                 ar.item = 0;
             }
         }
@@ -5795,7 +5577,7 @@ void ObjectMgr::LoadAccessRequirements()
             ItemTemplate const* pProto = GetItemTemplate(ar.item2);
             if (!pProto)
             {
-                sLog->outError("Second item %u does not exist for map %u difficulty %u, removing key requirement.", ar.item2, mapid, difficulty);
+                sLog->outError("Second item %u does not exist for map %u, removing key requirement.", ar.item2, mapid);
                 ar.item2 = 0;
             }
         }
@@ -5804,7 +5586,7 @@ void ObjectMgr::LoadAccessRequirements()
         {
             if (!GetQuestTemplate(ar.quest_A))
             {
-                sLog->outErrorDb("Required Alliance Quest %u not exist for map %u difficulty %u, remove quest done requirement.", ar.quest_A, mapid, difficulty);
+                sLog->outErrorDb("Required Alliance Quest %u not exist for map %u, remove quest done requirement.", ar.quest_A, mapid);
                 ar.quest_A = 0;
             }
         }
@@ -5813,13 +5595,14 @@ void ObjectMgr::LoadAccessRequirements()
         {
             if (!GetQuestTemplate(ar.quest_H))
             {
-                sLog->outErrorDb("Required Horde Quest %u not exist for map %u difficulty %u, remove quest done requirement.", ar.quest_H, mapid, difficulty);
+                sLog->outErrorDb("Required Horde Quest %u not exist for map %u, remove quest done requirement.", ar.quest_H, mapid);
                 ar.quest_H = 0;
             }
         }
 
-        _accessRequirementStore[requirement_ID] = ar;
-    } while (result->NextRow());
+        _accessRequirementStore.push_back(ar);
+    }
+    while (result->NextRow());
 
     sLog->outString(">> Loaded %u access requirement definitions in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     sLog->outString();

@@ -374,7 +374,7 @@ Battleground* BattlegroundMgr::CreateNewBattleground(BattlegroundTypeId bgTypeId
             return 0;
     }
 
-    // set battelground difficulty before initialization
+    // set battelground bracket entry before initialization
     bg->SetBracket(bracketEntry);
 
     // generate a new instance id

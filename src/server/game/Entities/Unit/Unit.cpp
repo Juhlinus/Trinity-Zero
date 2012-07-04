@@ -12097,7 +12097,7 @@ void Unit::Kill(Unit* victim, bool durabilityLoss)
 
             if (instanceMap->IsDungeon() && creditedPlayer)
             {
-                if (instanceMap->IsRaidOrHeroicDungeon())
+                if (instanceMap->IsRaid())
                 {
                     if (creature->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_INSTANCE_BIND)
                         ((InstanceMap*)instanceMap)->PermBindAllPlayers(creditedPlayer);

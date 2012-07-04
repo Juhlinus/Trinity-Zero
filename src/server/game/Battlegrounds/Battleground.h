@@ -341,7 +341,7 @@ class Battleground
         void IncreaseInvitedCount(uint32 team)      { (team == ALLIANCE) ? ++m_InvitedAlliance : ++m_InvitedHorde; }
 
         uint32 GetInvitedCount(uint32 team) const   { return (team == ALLIANCE) ? m_InvitedAlliance : m_InvitedHorde; }
-        bool HasFreeSlots() const;
+        bool HasFreeSlots() const                   { return GetPlayersSize() < GetMaxPlayers(); };
         uint32 GetFreeSlotsForTeam(uint32 Team) const;
 
         typedef std::map<uint64, BattlegroundPlayer> BattlegroundPlayerMap;

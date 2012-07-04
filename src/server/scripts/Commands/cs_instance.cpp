@@ -73,32 +73,26 @@ public:
             player = handler->GetSession()->GetPlayer();
 
         uint32 counter = 0;
-        for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+        Player::BoundInstancesMap &binds = player->GetBoundInstances();
+        for (Player::BoundInstancesMap::const_iterator itr = binds.begin(); itr != binds.end(); ++itr)
         {
-            Player::BoundInstancesMap &binds = player->GetBoundInstances(Difficulty(i));
-            for (Player::BoundInstancesMap::const_iterator itr = binds.begin(); itr != binds.end(); ++itr)
-            {
-                InstanceSave* save = itr->second.save;
-                std::string timeleft = GetTimeString(save->GetResetTime() - time(NULL));
-                handler->PSendSysMessage("map: %d inst: %d perm: %s diff: %d canReset: %s TTR: %s", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no",  save->GetDifficulty(), save->CanReset() ? "yes" : "no", timeleft.c_str());
-                counter++;
-            }
+            InstanceSave* save = itr->second.save;
+            std::string timeleft = GetTimeString(save->GetResetTime() - time(NULL));
+            handler->PSendSysMessage("map: %d inst: %d perm: %s canReset: %s TTR: %s", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no",  save->CanReset() ? "yes" : "no", timeleft.c_str());
+            counter++;
         }
         handler->PSendSysMessage("player binds: %d", counter);
 
         counter = 0;
         if (Group* group = player->GetGroup())
         {
-            for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+            Group::BoundInstancesMap &binds = group->GetBoundInstances();
+            for (Group::BoundInstancesMap::const_iterator itr = binds.begin(); itr != binds.end(); ++itr)
             {
-                Group::BoundInstancesMap &binds = group->GetBoundInstances(Difficulty(i));
-                for (Group::BoundInstancesMap::const_iterator itr = binds.begin(); itr != binds.end(); ++itr)
-                {
-                    InstanceSave* save = itr->second.save;
-                    std::string timeleft = GetTimeString(save->GetResetTime() - time(NULL));
-                    handler->PSendSysMessage("map: %d inst: %d perm: %s diff: %d canReset: %s TTR: %s", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no",  save->GetDifficulty(), save->CanReset() ? "yes" : "no", timeleft.c_str());
-                    counter++;
-                }
+                InstanceSave* save = itr->second.save;
+                std::string timeleft = GetTimeString(save->GetResetTime() - time(NULL));
+                handler->PSendSysMessage("map: %d inst: %d perm: %s canReset: %s TTR: %s", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no",  save->CanReset() ? "yes" : "no", timeleft.c_str());
+                counter++;
             }
         }
         handler->PSendSysMessage("group binds: %d", counter);
@@ -130,22 +124,19 @@ public:
                 return false;
         }
 
-        for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
+        Player::BoundInstancesMap &binds = player->GetBoundInstances();
+        for (Player::BoundInstancesMap::iterator itr = binds.begin(); itr != binds.end();)
         {
-            Player::BoundInstancesMap &binds = player->GetBoundInstances(Difficulty(i));
-            for (Player::BoundInstancesMap::iterator itr = binds.begin(); itr != binds.end();)
+            InstanceSave* save = itr->second.save;
+            if (itr->first != player->GetMapId() && (!MapId || MapId == itr->first) && diff == -1)
             {
-                InstanceSave* save = itr->second.save;
-                if (itr->first != player->GetMapId() && (!MapId || MapId == itr->first) && (diff == -1 || diff == save->GetDifficulty()))
-                {
-                    std::string timeleft = GetTimeString(save->GetResetTime() - time(NULL));
-                    handler->PSendSysMessage("unbinding map: %d inst: %d perm: %s diff: %d canReset: %s TTR: %s", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no", save->GetDifficulty(), save->CanReset() ? "yes" : "no", timeleft.c_str());
-                    player->UnbindInstance(itr, Difficulty(i));
-                    counter++;
-                }
-                else
-                    ++itr;
+                std::string timeleft = GetTimeString(save->GetResetTime() - time(NULL));
+                handler->PSendSysMessage("unbinding map: %d inst: %d perm: %s canReset: %s TTR: %s", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no", save->CanReset() ? "yes" : "no", timeleft.c_str());
+                player->UnbindInstance(itr);
+                counter++;
             }
+            else
+                ++itr;
         }
         handler->PSendSysMessage("instances unbound: %d", counter);
 
