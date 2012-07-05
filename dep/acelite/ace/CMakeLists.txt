@@ -331,7 +331,9 @@ set_source_files_properties(Atomic_Op_Sparc.c Rtems_init.c PROPERTIES LANGUAGE C
 add_definitions(-DACE_BUILD_DLL)
 
 add_library(ace SHARED ${ace_STAT_SRCS})
-
+IF (WIN32)
+target_link_libraries(ace "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Lib/WS2_32.lib")
+ENDIF(WIN32)
 add_native_precompiled_header(ace ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders/WinAcePCH)
 
 install(TARGETS ace RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")

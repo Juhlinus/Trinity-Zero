@@ -558,8 +558,8 @@ ACE_Object_Manager::get_singleton_lock (ACE_Thread_Mutex *&lock)
               // ACE_Object_Manager::instance ()->internal_lock_
               // again; that's why it is a recursive lock.
               ACE_Object_Manager::at_exit (lock_adapter,
-                                           0,
-                                           typeid (*lock_adapter).name ());
+                                           0/*,
+                                           typeid (*lock_adapter).name ()*/);
             }
         }
     }

@@ -75,6 +75,9 @@
 #define ACE_ISCTYPE_EQUIVALENT ::_isctype
 #define ACE_HAS_STANDARD_CPP_LIBRARY 1
 #define ACE_USES_STD_NAMESPACE_FOR_STDCPP_LIB 1
+#define ACE_HAS_WCHAR
+
+#undef __ACE_INLINE__
 
 // We trust the user: He must have used -mpentiumpro or -mpentium
 // if that is what he wants.

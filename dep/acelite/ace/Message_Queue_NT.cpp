@@ -3,6 +3,7 @@
 #include "ace/Message_Queue.h"
 #include "ace/Message_Queue_NT.h"
 #include "ace/Log_Msg.h"
+#include "ace/Truncate.h"
 
 #if !defined (__ACE_INLINE__)
 #include "ace/Message_Queue_NT.inl"
