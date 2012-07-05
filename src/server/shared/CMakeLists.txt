@@ -71,12 +71,14 @@ include_directories(
   ${ACE_INCLUDE_DIR}
   ${MYSQL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIR}
 )
 
 add_library(shared STATIC ${shared_STAT_SRCS})
 
 target_link_libraries(shared
   ${ACE_LIBRARY}
+  ${Boost_LIBRARIES}
 )
 
 # Generate precompiled header

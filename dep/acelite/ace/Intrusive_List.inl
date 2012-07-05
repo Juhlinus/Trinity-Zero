@@ -2,8 +2,9 @@
 //
 // $Id: Intrusive_List.inl 91688 2010-09-09 11:21:50Z johnnyw $
 
-#include <algorithm>
-
+#if !defined(__clang__)
+    #include <algorithm>
+#endif
 ACE_BEGIN_VERSIONED_NAMESPACE_DECL
 
 template<class T> ACE_INLINE bool
@@ -27,8 +28,10 @@ ACE_Intrusive_List<T>::tail (void) const
 template<class T> ACE_INLINE void
 ACE_Intrusive_List<T>::swap(ACE_Intrusive_List<T> & rhs)
 {
+#if !defined(__clang__)
   std::swap(head_, rhs.head_);
   std::swap(tail_, rhs.tail_);
+#endif
 }
 
 ACE_END_VERSIONED_NAMESPACE_DECL

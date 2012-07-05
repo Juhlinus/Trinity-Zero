@@ -5,7 +5,9 @@
 #include "ace/Basic_Types.h"
 #include "ace/Handle_Set.h"
 #include "ace/Auto_Ptr.h"
-#include "ace/SString.h"
+#if !defined(__clang__)
+    #include "ace/SString.h"
+#endif
 #include "ace/Version.h"
 #include "ace/Message_Block.h"
 #include "ace/Log_Msg.h"

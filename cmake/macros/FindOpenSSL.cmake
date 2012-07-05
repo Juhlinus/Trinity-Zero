@@ -118,49 +118,52 @@ IF(WIN32 AND NOT CYGWIN)
     endif()
 
     MARK_AS_ADVANCED(SSL_EAY_DEBUG SSL_EAY_RELEASE LIB_EAY_DEBUG LIB_EAY_RELEASE)
-  ELSEIF(MINGW)
+  ELSE(MSVC)
 
     # same player, for MingW
     FIND_LIBRARY(LIB_EAY
       NAMES
         libeay32
       PATHS
-        ${OPENSSL_ROOT_DIR}/lib/MinGW
+        ${OPENSSL_ROOT_DIR}/lib
     )
 
     FIND_LIBRARY(SSL_EAY NAMES
       NAMES
         ssleay32
       PATHS
-        ${OPENSSL_ROOT_DIR}/lib/MinGW
+        ${OPENSSL_ROOT_DIR}/lib
     )
 
     MARK_AS_ADVANCED(SSL_EAY LIB_EAY)
-
+	MESSAGE (${SSL_EAY})
+	MESSAGE (${LIB_EAY})
+	MESSAGE (${OPENSSL_ROOT_DIR})
     set( OPENSSL_LIBRARIES
       ${SSL_EAY}
       ${LIB_EAY}
     )
-  ELSE(MSVC)
+  #ELSE(MSVC)
     # Not sure what to pick for -say- intel, let's use the toplevel ones and hope someone report issues:
-    FIND_LIBRARY(LIB_EAY
-      NAMES
-        libeay32
-      PATHS
-        ${OPENSSL_ROOT_DIR}/lib
-        ${OPENSSL_ROOT_DIR}/lib/VC
-    )
+   # FIND_LIBRARY(LIB_EAY
+    #  NAMES
+     #   libeay32
+     # PATHS
+      #  ${OPENSSL_ROOT_DIR}/lib
+       # ${OPENSSL_ROOT_DIR}/lib/VC
+   # )
 
-    FIND_LIBRARY(SSL_EAY
-      NAMES
-        ssleay32
-      PATHS
-        ${OPENSSL_ROOT_DIR}/lib
-        ${OPENSSL_ROOT_DIR}/lib/VC
-    )
-    MARK_AS_ADVANCED(SSL_EAY LIB_EAY)
+    #FIND_LIBRARY(SSL_EAY
+     # NAMES
+      #  ssleay32
+      #PATHS
+      #  ${OPENSSL_ROOT_DIR}/lib
+       # ${OPENSSL_ROOT_DIR}/lib/VC
+   # )
+   # MARK_AS_ADVANCED(SSL_EAY LIB_EAY)
 
-    SET( OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY} )
+    #SET( OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY} )
+  #ENDIF(MSVC)
   ENDIF(MSVC)
 ELSE(WIN32 AND NOT CYGWIN)
   FIND_LIBRARY(OPENSSL_SSL_LIBRARIES NAMES ssl ssleay32 ssleay32MD)
