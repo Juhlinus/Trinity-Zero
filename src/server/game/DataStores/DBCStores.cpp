@@ -719,7 +719,7 @@ void Map2ZoneCoordinates(float& x, float& y, uint32 zone)
     std::swap(x, y);                                         // client have map coords swapped
 }
 
-MapDifficulty const* GetMapDifficultyData(uint32 mapId)
+/* MapDifficulty const* GetMapDifficultyData(uint32 mapId)
 {
     //MapDifficultyMap::const_iterator itr = sMapDifficultyMap.find(MAKE_PAIR32(mapId, difficulty));
     //return itr != sMapDifficultyMap.end() ? &itr->second : NULL;
@@ -728,7 +728,7 @@ MapDifficulty const* GetMapDifficultyData(uint32 mapId)
 
 MapDifficulty const* GetDownscaledMapDifficultyData(uint32 mapId)
 {
-    /*uint32 tmpDiff = difficulty;
+    uint32 tmpDiff = difficulty;
     MapDifficulty const* mapDiff = GetMapDifficultyData(mapId, Difficulty(tmpDiff));
     if (!mapDiff)
     {
@@ -747,9 +747,9 @@ MapDifficulty const* GetDownscaledMapDifficultyData(uint32 mapId)
     }
 
     difficulty = Difficulty(tmpDiff);
-    return mapDiff;*/
+    return mapDiff;
     //! TrinityZero note: ...
-}
+} */
 
 PvPDifficultyEntry const* GetBattlegroundBracketByLevel(uint32 mapid, uint32 level)
 {
