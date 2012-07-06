@@ -25,6 +25,7 @@ elseif( WIN32 )
     ${CMAKE_SOURCE_DIR}/dep/libmpq/win
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/loadlib
+    ${ACE_INCLUDE_DIR}
   )
 endif()
 

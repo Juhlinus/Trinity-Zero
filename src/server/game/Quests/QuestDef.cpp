@@ -221,9 +221,6 @@ bool Quest::IsAutoComplete() const
 
 bool Quest::IsAllowedInRaid() const
 {
-    if (IsRaidQuest())
-        return true;
-
     return sWorld->getBoolConfig(CONFIG_QUEST_IGNORE_RAID);
 }
 

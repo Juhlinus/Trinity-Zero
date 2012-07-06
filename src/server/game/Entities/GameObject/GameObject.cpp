@@ -68,14 +68,15 @@ GameObject::GameObject() : WorldObject(false), m_model(NULL), m_goValue(new Game
     {
         meetingStones.push_back(std::make_pair(GetGOInfo()->meetingstone.areaID, GetGOInfo()->meetingstone.minLevel));
 
-        MeetingStonesContainer const* gotc = sObjectMgr->GetGameObjectTemplates();
-        for (MeetingStonesContainer::const_iterator itr = gotc->begin(); itr != gotc->end(); ++itr)
-        {
-            switch (itr->second.areaId)
-            {
+        //Enable it after it's fixed.
+        //MeetingStonesContainer const* gotc = sObjectMgr->GetGameObjectTemplates();
+        //for (MeetingStonesContainer::const_iterator itr = gotc->begin(); itr != gotc->end(); ++itr)
+        //{
+        //    switch (itr->second.areaId)
+        //    {
 
-            }
-        }
+        //    }
+        //}
     }
 }
 
