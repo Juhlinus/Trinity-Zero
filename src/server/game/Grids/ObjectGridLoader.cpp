@@ -154,7 +154,7 @@ void ObjectWorldLoader::Visit(CorpseMapType &m)
 {
     CellCoord cellCoord = i_cell.GetCellCoord();
     // corpses are always added to spawn mode 0 and they are spawned by their instance id
-    CellObjectGuids const& cell_guids = sObjectMgr->GetCellObjectGuids(i_map->GetId(), 0, cellCoord.GetId());
+    CellObjectGuids const& cell_guids = sObjectMgr->GetCellObjectGuids(i_map->GetId(), cellCoord.GetId());
     LoadHelper(cell_guids.corpses, cellCoord, m, i_corpses, i_map);
 }
 

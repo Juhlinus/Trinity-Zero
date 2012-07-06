@@ -1469,7 +1469,8 @@ void Player::Update(uint32 p_time)
 
     CheckDuelDistance(now);
 
-    CheckMeetingStoneQueue(now);
+//    CheckMeetingStoneQueue(now);
+//    UpdateTimeInQueue(p_time);
 
     if (isCharmed())
         if (Unit* charmer = GetCharmer())
@@ -1981,7 +1982,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
     if (AccountMgr::IsPlayerAccount(GetSession()->GetSecurity()) && DisableMgr::IsDisabledFor(DISABLE_TYPE_MAP, mapid, this))
     {
         sLog->outError("Player (GUID: %u, name: %s) tried to enter a forbidden map %u", GetGUIDLow(), GetName(), mapid);
-        SendTransferAborted(mapid, TRANSFER_ABORT_MAP_NOT_ALLOWED);
+        SendTransferAborted(mapid, TRANSFER_ABORT_ERROR);
         return false;
     }
 
@@ -2936,7 +2937,9 @@ void Player::GiveLevel(uint8 level)
 
     // Refer-A-Friend
     if (GetSession()->GetRecruiterId())
+    {
         if (level < sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL))
+        {
             if (level % 2 == 0)
             {
                 ++m_grantableLevels;
@@ -2944,6 +2947,37 @@ void Player::GiveLevel(uint8 level)
                 if (!HasByteFlag(PLAYER_FIELD_BYTES, 1, 0x01))
                     SetByteFlag(PLAYER_FIELD_BYTES, 1, 0x01);
             }
+        }
+    }
+
+/*    if (PlayerInMeetingStoneQueue(GetGUIDLow()))
+    {
+        uint32 GUIDLow = GetGUIDLow();
+        if (MeetingStone const* meetingStoneInfo = sObjectMgr->GetMeetingStoneByAreaId(GetAreaIdInMeetingStoneQueue(GUIDLow)))
+        {
+            std::string dungeonName = (GetAreaIdInMeetingStoneQueue(GUIDLow) ? GetMeetingStoneQueueDungeonName(GUIDLow, GetAreaIdInMeetingStoneQueue(GUIDLow)) : "<unkown>");
+
+            if (getLevel() > meetingStoneInfo->maxLevel || getLevel() < meetingStoneInfo->minLevel)
+            {
+                if (Group* group = GetGroup())
+                {
+                    for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+                    {
+                        if (Player* playerInG = itr->getSource())
+                        {
+                            ChatHandler(playerInG).PSendSysMessage("This group has been removed from the meeting stone queue for dungeon %s because a player with a too high or too low level was invited to the group.", dungeonName);
+                            RemovePlayerFromMeetingStoneQueue(playerInG->GetGUIDLow());
+                        }
+                    }
+                }
+                else
+                {
+                    ChatHandler(this).PSendSysMessage("You have been removed from the meeting stone queue for dungeon %s because your level is either too high or too low.", dungeonName);
+                    RemovePlayerFromMeetingStoneQueue(GUIDLow);
+                }
+            }
+        }
+    }*/
 
     sScriptMgr->OnPlayerLevelChanged(this, oldLevel);
 }
@@ -5377,7 +5411,7 @@ void Player::RepopAtGraveyard()
     AreaTableEntry const* zone = GetAreaEntryByAreaID(GetAreaId());
 
     // Such zones are considered unreachable as a ghost and the player must be automatically revived
-    if ((!isAlive() && zone && zone->flags & AREA_FLAG_NEED_FLY) || GetTransport() || GetPositionZ() < -500.0f)
+    if ((!isAlive() || GetTransport() || GetPositionZ() < -500.0f))
     {
         ResurrectPlayer(0.5f);
         SpawnCorpseBones();
@@ -5647,6 +5681,7 @@ void Player::GetDodgeFromAgility(float &diminishing, float &nondiminishing)
          0.056097f  // Druid
     };
     // Crit/agility to dodge/agility coefficient multipliers; 3.2.0 increased required agility by 15%
+    //! TrinityZero note: ...
     const float crit_to_dodge[MAX_CLASSES] =
     {
          0.85f/1.15f,    // Warrior
@@ -9894,17 +9929,6 @@ InventoryResult Player::CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item
                 *no_space_count = count;
             return EQUIP_ERR_ITEM_CANT_BE_EQUIPPED;
         }
-
-        if (limitEntry->mode == ITEM_LIMIT_CATEGORY_MODE_HAVE)
-        {
-            uint32 curcount = GetItemCountWithLimitCategory(pProto->ItemLimitCategory, pItem);
-            if (curcount + count > uint32(limitEntry->maxCount))
-            {
-                if (no_space_count)
-                    *no_space_count = count + curcount - limitEntry->maxCount;
-                return EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED;
-            }
-        }
     }
 
     return EQUIP_ERR_OK;
@@ -13231,12 +13255,6 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
                     }
                     break;
                 }
-                case ITEM_ENCHANTMENT_TYPE_USE_SPELL:
-                    // processed in Player::CastItemUseSpell
-                    break;
-                case ITEM_ENCHANTMENT_TYPE_PRISMATIC_SOCKET:
-                    // nothing do..
-                    break;
                 default:
                     sLog->outError("Unknown item enchantment (id = %d) display type: %d", enchant_id, enchant_display_type);
                     break;
@@ -14032,7 +14050,7 @@ bool Player::CanCompleteRepeatableQuest(Quest const* quest)
 bool Player::CanRewardQuest(Quest const* quest, bool msg)
 {
     // not auto complete quest and not completed quest (only cheating case, then ignore without message)
-    if (!quest->IsDFQuest() && !quest->IsAutoComplete() && !(quest->GetFlags() & QUEST_FLAGS_AUTOCOMPLETE) && GetQuestStatus(quest->GetQuestId()) != QUEST_STATUS_COMPLETE)
+    if (!quest->IsAutoComplete() && !(quest->GetFlags() & QUEST_FLAGS_AUTOCOMPLETE) && GetQuestStatus(quest->GetQuestId()) != QUEST_STATUS_COMPLETE)
         return false;
 
     // daily quest can't be rewarded (25 daily quest already completed)
@@ -14328,9 +14346,7 @@ void Player::RewardQuest(Quest const* quest, uint32 reward, Object* questGiver, 
         CharacterDatabase.CommitTransaction(trans);
     }
 
-    if (quest->IsDaily() || quest->IsDFQuest())
-        SetDailyQuestStatus(quest_id);
-    else if (quest->IsWeekly())
+    if (quest->IsWeekly())
         SetWeeklyQuestStatus(quest_id);
     else if (quest->IsSeasonal())
         SetSeasonalQuestStatus(quest_id);
@@ -14753,16 +14769,8 @@ bool Player::SatisfyQuestPrevChain(Quest const* qInfo, bool msg)
 
 bool Player::SatisfyQuestDay(Quest const* qInfo, bool msg)
 {
-    if (!qInfo->IsDaily() && !qInfo->IsDFQuest())
+    if (!qInfo->IsDaily())
         return true;
-
-    if (qInfo->IsDFQuest())
-    {
-        if (!m_DFQuests.empty())
-            return false;
-
-        return true;
-    }
 
     bool have_slot = false;
     for (uint32 quest_daily_idx = 0; quest_daily_idx < PLAYER_MAX_DAILY_QUESTS; ++quest_daily_idx)
@@ -17053,15 +17061,6 @@ void Player::_LoadDailyQuestStatus(PreparedQueryResult result)
         do
         {
             Field* fields = result->Fetch();
-            if (Quest const* qQuest = sObjectMgr->GetQuestTemplate(fields[0].GetUInt32()))
-            {
-                if (qQuest->IsDFQuest())
-                {
-                    m_DFQuests.insert(qQuest->GetQuestId());
-                    m_lastDailyQuestTime = time_t(fields[1].GetUInt32());
-                    continue;
-                }
-            }
 
             if (quest_daily_idx >= PLAYER_MAX_DAILY_QUESTS)  // max amount with exist data in query
             {
@@ -20896,6 +20895,26 @@ void Player::SendUpdateToOutOfRangeGroupMembers()
         pet->ResetAuraUpdateMaskForRaid();
 }
 
+void Player::SendTransferAborted(uint32 mapid, TransferAbortReason reason, uint8 arg)
+{
+    WorldPacket data(SMSG_TRANSFER_ABORTED, 4+2);
+    data << uint32(mapid);
+    data << uint8(reason);                                 // transfer abort reason
+    //! TrinityZero note: undefined here - Brian, please reverse to get this working
+    /*switch (reason)
+    {
+        case TRANSFER_ABORT_INSUF_EXPAN_LVL:
+        case TRANSFER_ABORT_DIFFICULTY:
+        case TRANSFER_ABORT_UNIQUE_MESSAGE:
+             these are the ONLY cases that have an extra argument in the packet!!!
+            data << uint8(arg);
+            break;
+        default:
+            break;
+    }*/
+    GetSession()->SendPacket(&data);
+}
+
 void Player::SendInstanceResetWarning(uint32 mapid, uint32 time)
 {
     // type of warning, based on the time remaining until reset
@@ -21175,24 +21194,9 @@ void Player::SetDailyQuestStatus(uint32 quest_id)
 {
     if (Quest const* qQuest = sObjectMgr->GetQuestTemplate(quest_id))
     {
-        if (!qQuest->IsDFQuest())
-        {
-            for (uint32 quest_daily_idx = 0; quest_daily_idx < PLAYER_MAX_DAILY_QUESTS; ++quest_daily_idx)
-            {
-                if (!GetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1+quest_daily_idx))
-                {
-                    SetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1+quest_daily_idx, quest_id);
-                    m_lastDailyQuestTime = time(NULL);              // last daily quest time
-                    m_DailyQuestChanged = true;
-                    break;
-                }
-            }
-        } else
-        {
-            m_DFQuests.insert(quest_id);
-            m_lastDailyQuestTime = time(NULL);
-            m_DailyQuestChanged = true;
-        }
+        m_DFQuests.insert(quest_id);
+        m_lastDailyQuestTime = time(NULL);
+        m_DailyQuestChanged = true;
     }
 }
 
@@ -21326,9 +21330,6 @@ bool Player::HasQuestForGO(int32 GOId) const
         {
             Quest const* qinfo = sObjectMgr->GetQuestTemplate(questid);
             if (!qinfo)
-                continue;
-
-            if (GetGroup() && GetGroup()->isRaidGroup() && !qinfo->IsAllowedInRaid())
                 continue;
 
             for (uint8 j = 0; j < QUEST_OBJECTIVES_COUNT; ++j)
@@ -22901,29 +22902,6 @@ void Player::ResummonPetTemporaryUnSummonedIfAny()
     m_temporaryUnsummonedPetNumber = 0;
 }
 
-bool Player::canSeeSpellClickOn(Creature const* c) const
-{
-    if (!c->HasFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPELLCLICK))
-        return false;
-
-    SpellClickInfoMapBounds clickPair = sObjectMgr->GetSpellClickInfoMapBounds(c->GetEntry());
-    if (clickPair.first == clickPair.second)
-        return true;
-
-    for (SpellClickInfoContainer::const_iterator itr = clickPair.first; itr != clickPair.second; ++itr)
-    {
-        if (!itr->second.IsFitToRequirements(this, c))
-            return false;
-
-        ConditionList conds = sConditionMgr->GetConditionsForSpellClickEvent(c->GetEntry(), itr->second.spellId);
-        ConditionSourceInfo info = ConditionSourceInfo(const_cast<Player*>(this), const_cast<Creature*>(c));
-        if (!sConditionMgr->IsObjectMeetToConditions(info, conds))
-            return false;
-    }
-
-    return true;
-}
-
 void Player::BuildPlayerTalentsInfoData(WorldPacket* data)
 {
     *data << uint32(GetFreeTalentPoints());                 // unspentTalentPoints
@@ -23685,137 +23663,4 @@ void Player::SendMovementSetFeatherFall(bool apply)
     data.append(GetPackGUID());
     data << uint32(0);          //! movement counter
     SendDirectMessage(&data);
-}
-
-bool Player::IsInMeetingStoneQueue()
-{
-    for (std::map<uint32, uint32>::iterator itr = meetingStoneQueue.begin(); itr != meetingStoneQueue.end(); ++itr)
-        if (itr->first == GetGUIDLow())
-            return true;
-    return false;
-}
-
-bool Player::IsInMeetingStoneQueueForInstanceId(uint32 areaId)
-{
-    for (std::map<uint32, uint32>::iterator itr = meetingStoneQueue.begin(); itr != meetingStoneQueue.end(); ++itr)
-        if (itr->first == GetGUIDLow() && itr->second == areaId)
-            return true;
-    return false;
-}
-
-std::vector<Player*> Player::GetPlayersInMeetingStoneQueueForInstanceId(uint32 areaId)
-{
-    std::vector<Player*> players;
-    for (std::map<uint32, uint32>::iterator itr = meetingStoneQueue.begin(); itr != meetingStoneQueue.end(); ++itr)
-        if (itr->second == areaId)
-            players.push_back(ObjectAccessor::GetPlayer(*this, MAKE_NEW_GUID(itr->first, 0, HIGHGUID_PLAYER)));
-    return players;
-}
-
-uint32 Player::GetSizeOfMeetingStoneQueueForInstanceId(uint32 areaId)
-{
-    uint32 count = 0;
-    for (std::map<uint32, uint32>::iterator itr = meetingStoneQueue.begin(); itr != meetingStoneQueue.end(); ++itr)
-        if (itr->second == areaId)
-            count++;
-    return count;
-}
-
-uint32 Player::GetAreaIdInMeetingStoneQueue()
-{
-    for (std::map<uint32, uint32>::iterator itr = meetingStoneQueue.begin(); itr != meetingStoneQueue.end(); ++itr)
-        if (itr->first == GetGUIDLow())
-            return itr->second;
-    return 0;
-}
-
-std::string Player::GetMeetingStoneQueueDungeonName(uint32 _areaId)
-{
-    return GetAreaEntryByAreaID(_areaId)->area_name[GetSession()->GetSessionDbcLocale()];
-}
-
-void Player::RemoveFromMeetingStoneQueue()
-{
-    std::map<uint32, uint32>::iterator itr = meetingStoneQueue.find(GetGUIDLow());
-    if (itr != meetingStoneQueue.end())
-    {
-        meetingStoneQueue.erase(itr);
-        timeInMeetingStoneQueue = 0;
-    }
-}
-
-void Player::CheckMeetingStoneQueue(time_t currTime)
-{
-    bool foundGroup = false;
-    if (IsInMeetingStoneQueue())
-    {
-        timeInMeetingStoneQueue += currTime;
-        uint32 dungeonArea = GetAreaIdInMeetingStoneQueue();
-        uint32 mapId = GetAreaEntryByAreaID(dungeonArea)->mapid;
-        std::string dungeonName = dungeonArea ? GetMeetingStoneQueueDungeonName(dungeonArea) : "<unkown>";
-        std::vector<Player*> playersInQueueForInstance = GetPlayersInMeetingStoneQueueForInstanceId(dungeonArea);
-
-        //! "As time goes on and you are unable to find a group, the meeting stone will become less picky about who it chooses to group you with."
-        if ((timeInMeetingStoneQueue & 30000) == 0)
-        {
-            sLog->outString("As time goes on ...");
-            ChatHandler(this).PSendSysMessage("You are in queue to find a group for dungeon %s...", dungeonName);
-        }
-
-        for (std::vector<Player*>::const_iterator itr = playersInQueueForInstance.begin(); itr != playersInQueueForInstance.end(); ++itr)
-        {
-            //! Here we iterate through all possibile players that are in the queue, these can be:
-            //  - Groups which are put in queue by their leader;
-            //  - Players that are queueing on their own;
-            //  - 
-            if (Player* playerInQ = (*itr)->ToPlayer())
-            {
-                //! Only continue if this player is actually in queue for the instance
-                //! we are searching a group for.
-                if (playerInQ->IsInMeetingStoneQueueForInstanceId(dungeonArea))
-                {
-                    if (Group* group = playerInQ->GetGroup())
-                    {
-                        //! Only make this work if this player is the leader of the group, else there is
-                        //! a high chance we iterate through the same group more than once. Also please
-                        //! note how the leader is contained in the iteration (obviously).
-                        if (group->GetLeaderGUID() == playerInQ->GetGUID())
-                        {
-                            for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
-                            {
-                                if (Player* grpMember = itr->getSource())
-                                {
-                                    //! We won't invite ourselves to this group if:
-                                    //  - One of their members is not in queue for the queue;
-                                    //  - A groupmember ignored this player (or likewise);
-                                    //  - The group is full;
-                                    if (!grpMember->IsInMeetingStoneQueueForInstanceId(dungeonArea) || group->IsFull() || grpMember->GetSocial()->HasIgnore(GetGUIDLow()) || GetSocial()->HasIgnore(grpMember->GetGUIDLow()))
-                                        break;
-
-                                    group->AddInvite(this);
-                                    //RemoveFromMeetingStoneQueue(); //? Won't this crash? Removing an element while iterating over it...
-                                    foundGroup = true;
-                                }
-                            }
-                        }
-                    }
-                    //! If player is not in a group and thus searching on its own...
-                    else
-                    {
-                        group = new Group;
-                        group->Create(this);
-                        group->AddMember(playerInQ);
-                        //group->AddMember(this); // Not sure if neccesary
-                        //! We are not removing them from queue on purpose as they are
-                        //! still searching for new players to join.
-                    }
-                }
-            }
-        }
-    }
-    else
-        timeInMeetingStoneQueue = 0;
-
-    if (foundGroup)
-        RemoveFromMeetingStoneQueue();
 }

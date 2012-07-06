@@ -2263,22 +2263,6 @@ class Player : public Unit, public GridObject<Player>
         Player* GetNextRandomRaidMember(float radius);
         PartyResult CanUninviteFromGroup() const;
 
-        /*********************************************************/
-        /***                MEETING STONE SYSTEM               ***/
-        /*********************************************************/
-        std::map<uint32 /*GUIDLow*/, uint32 /*areaId*/> meetingStoneQueue;
-
-        void CheckMeetingStoneQueue(time_t currTime);
-        bool IsInMeetingStoneQueue();
-        bool IsInMeetingStoneQueueForInstanceId(uint32 areaId);
-        std::vector<Player*> GetPlayersInMeetingStoneQueueForInstanceId(uint32 areaId);
-        uint32 GetSizeOfMeetingStoneQueueForInstanceId(uint32 areaId);
-        uint32 GetAreaIdInMeetingStoneQueue();
-        uint32 GetTimeInMeetingStoneQueue() { return timeInMeetingStoneQueue; }
-        std::string GetMeetingStoneQueueDungeonName(uint32 _areaId);
-        void AddToMeetingStoneQueue(uint32 areaId) { meetingStoneQueue[GetGUIDLow()] = areaId; }
-        void RemoveFromMeetingStoneQueue();
-
         // Battleground Group System
         void SetBattlegroundRaid(Group* group, int8 subgroup = -1);
         void RemoveFromBattlegroundRaid();
@@ -2305,7 +2289,6 @@ class Player : public Unit, public GridObject<Player>
         void SetTitle(CharTitlesEntry const* title, bool lost = false);
 
         //bool isActiveObject() const { return true; }
-        bool canSeeSpellClickOn(Creature const* creature) const;
 
         Spell* m_spellModTakingSpell;
 

@@ -1662,10 +1662,11 @@ inline bool IsOutdoorWMO(uint32 mogpFlags, int32 /*adtId*/, int32 /*rootId*/, in
 
     if (wmoEntry && atEntry)
     {
-        if (atEntry->flags & AREA_FLAG_OUTSIDE)
-            return true;
-        if (atEntry->flags & AREA_FLAG_INSIDE)
-            return false;
+        //! TrinityZero removal.
+        //if (atEntry->flags & AREA_FLAG_OUTSIDE)
+        //    return true;
+        //if (atEntry->flags & AREA_FLAG_INSIDE)
+        //    return false;
     }
 
     outdoor = mogpFlags&0x8;
@@ -2641,7 +2642,7 @@ void InstanceMap::SetResetSchedule(bool on)
 
 uint32 InstanceMap::GetMaxPlayers() const
 {
-    return GetMaxPlayers();
+    return GetEntry()->maxPlayers;
 }
 
 uint32 InstanceMap::GetMaxResetDelay() const

@@ -296,6 +296,11 @@ class Group
         // FG: evil hacks
         void BroadcastGroupUpdate(void);
 
+        // Meeting Stone Queue
+        bool GroupInMeetingStoneQueue() const;
+        void RemoveGroupFromMeetingStoneQueue();
+        void SendMessageToGroup(char* msg);
+
     protected:
         bool _setMembersGroup(uint64 guid, uint8 group);
         void _homebindIfInstance(Player* player);

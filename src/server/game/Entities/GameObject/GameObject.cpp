@@ -61,23 +61,6 @@ GameObject::GameObject() : WorldObject(false), m_model(NULL), m_goValue(new Game
     lootingGroupLowGUID = 0;
 
     ResetLootMode(); // restore default loot mode
-
-    std::vector<std::pair<uint32, uint32> > meetingStones;
-
-    if (GetGoType() == GAMEOBJECT_TYPE_MEETINGSTONE)
-    {
-        meetingStones.push_back(std::make_pair(GetGOInfo()->meetingstone.areaID, GetGOInfo()->meetingstone.minLevel));
-
-        //Enable it after it's fixed.
-        //MeetingStonesContainer const* gotc = sObjectMgr->GetGameObjectTemplates();
-        //for (MeetingStonesContainer::const_iterator itr = gotc->begin(); itr != gotc->end(); ++itr)
-        //{
-        //    switch (itr->second.areaId)
-        //    {
-
-        //    }
-        //}
-    }
 }
 
 GameObject::~GameObject()
@@ -1493,11 +1476,12 @@ void GameObject::Use(Unit* user)
         }
         case GAMEOBJECT_TYPE_MEETINGSTONE:                  //23
         {
-            if (user->GetTypeId() != TYPEID_PLAYER)
+            /*if (user->GetTypeId() != TYPEID_PLAYER)
                 return;
 
             GameObjectTemplate const* info = GetGOInfo();
             Player* player = user->ToPlayer();
+            uint32 GUIDLow = user->GetGUIDLow();
             uint32 areaId = info->meetingstone.areaID;
             uint8 minLevel = info->meetingstone.minLevel;
             uint8 maxLevel = info->meetingstone.maxLevel;
@@ -1522,6 +1506,12 @@ void GameObject::Use(Unit* user)
                 return;
             }
 
+            if (player->GetGroup() && player->GetGroup()->GetLeaderGUID() == player->GetGUID() && player->GetGroup()->IsFull())
+            {
+                ChatHandler(player).PSendSysMessage("Your group is full so you can not queue for the meeting stone queue.");
+                return;
+            }
+
             if (player->getLevel() < minLevel || player->getLevel() > maxLevel)
             {
                 //! Got this error message from a 2005 post! :>
@@ -1529,28 +1519,49 @@ void GameObject::Use(Unit* user)
                 return;
             }
 
-            if (player->IsInMeetingStoneQueue())
+            if (PlayerInMeetingStoneQueue(GUIDLow))
             {
-                ChatHandler(player).PSendSysMessage("You are already in queue for instance %s.", player->GetMeetingStoneQueueDungeonName(player->GetAreaIdInMeetingStoneQueue()));
+                ChatHandler(player).PSendSysMessage("You are already in queue for instance %s.", dungeonName);
                 return;
             }
 
+            bool playerTooHigh = false;
             if (Group* group = player->GetGroup())
             {
                 for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
                 {
                     if (Player* grpMember = itr->getSource())
                     {
-                        grpMember->AddToMeetingStoneQueue(areaId);
-                        ChatHandler(grpMember).PSendSysMessage("You have been succesfuly placed in queue for instance %s.", dungeonName);
+                        if (grpMember->getLevel() > maxLevel || grpMember->getLevel() < minLevel)
+                        {
+                            playerTooHigh = true;
+                            break; // No need to continue looping through the group if a player has an inappropriate level
+                        }
+                    }
+                }
+
+                if (playerTooHigh)
+                {
+                    for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+                    {
+                        if (Player* grpMember = itr->getSource())
+                        {
+                            if (playerTooHigh)
+                                ChatHandler(grpMember).PSendSysMessage("You have not been put in queue because a player has a too high or too low level instance %s.", dungeonName);
+                            else
+                            {
+                                AddPlayerToMeetingStoneQueue(grpMember->GetGUIDLow(), areaId);
+                                ChatHandler(grpMember).PSendSysMessage("You have been succesfuly placed in queue for instance %s.", dungeonName);
+                            }
+                        }
                     }
                 }
             }
             else
             {
-                player->AddToMeetingStoneQueue(areaId);
+                player->AddPlayerToMeetingStoneQueue(areaId);
                 ChatHandler(player).PSendSysMessage("You have been succesfuly placed in queue for instance %s.", dungeonName);
-            }
+            }*/
             break;
         }
         case GAMEOBJECT_TYPE_FLAGSTAND:                     // 24

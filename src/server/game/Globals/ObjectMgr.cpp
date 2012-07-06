@@ -1351,14 +1351,14 @@ void ObjectMgr::LoadCreatures()
 void ObjectMgr::AddCreatureToGrid(uint32 guid, CreatureData const* data)
 {
     CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[data->mapid][cellCoord.GetId()];
     cell_guids.creatures.insert(guid);
 }
 
 void ObjectMgr::RemoveCreatureFromGrid(uint32 guid, CreatureData const* data)
 {
     CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[data->mapid][cellCoord.GetId()];
     cell_guids.creatures.erase(guid);
 }
 
@@ -1627,14 +1627,14 @@ void ObjectMgr::LoadGameobjects()
 void ObjectMgr::AddGameobjectToGrid(uint32 guid, GameObjectData const* data)
 {
     CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[data->mapid][cellCoord.GetId()];
     cell_guids.gameobjects.insert(guid);
 }
 
 void ObjectMgr::RemoveGameobjectFromGrid(uint32 guid, GameObjectData const* data)
 {
     CellCoord cellCoord = Trinity::ComputeCellCoord(data->posX, data->posY);
-    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][cellCoord.GetId()];
+    CellObjectGuids& cell_guids = _mapObjectGuidsStore[data->mapid][cellCoord.GetId()];
     cell_guids.gameobjects.erase(guid);
 }
 
@@ -4659,7 +4659,7 @@ void ObjectMgr::LoadInstanceTemplate()
 
     if (!result)
     {
-        sLog->outString(">> Loaded 0 instance templates. DB table `page_text` is empty!");
+        sLog->outString(">> Loaded 0 instance templates. DB table `instance_template` is empty!");
         sLog->outString();
         return;
     }
@@ -5600,7 +5600,7 @@ void ObjectMgr::LoadAccessRequirements()
             }
         }
 
-        _accessRequirementStore.push_back(ar);
+        _accessRequirementStore[mapid] = ar;
     }
     while (result->NextRow());
 
@@ -5928,6 +5928,15 @@ void ObjectMgr::LoadGameObjectTemplate()
 
         for (uint8 i = 0; i < MAX_GAMEOBJECT_DATA; ++i)
             got.raw.data[i] = fields[16 + i].GetInt32(); // data1 and data6 can be -1
+
+        if (got.type == GAMEOBJECT_TYPE_MEETINGSTONE)
+        {
+            MeetingStone stone;
+            stone.dungeonAreaId          = fields[16].GetInt32();
+            stone.minLevel               = fields[17].GetInt32();
+            stone.maxLevel               = fields[18].GetInt32();
+            _meetingStoneStore[entry] = stone;
+        }
 
         got.AIName = fields[40].GetString();
         got.ScriptId = GetScriptId(fields[41].GetCString());
@@ -6588,62 +6597,6 @@ void ObjectMgr::LoadQuestPOI()
     } while (result->NextRow());
 
     sLog->outString(">> Loaded %u quest POI definitions in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
-    sLog->outString();
-}
-
-void ObjectMgr::LoadNPCSpellClickSpells()
-{
-    uint32 oldMSTime = getMSTime();
-
-    _spellClickInfoStore.clear();
-    //                                                0          1         2            3
-    QueryResult result = WorldDatabase.Query("SELECT npc_entry, spell_id, cast_flags, user_type FROM npc_spellclick_spells");
-
-    if (!result)
-    {
-        sLog->outErrorDb(">> Loaded 0 spellclick spells. DB table `npc_spellclick_spells` is empty.");
-        sLog->outString();
-        return;
-    }
-
-    uint32 count = 0;
-
-    do
-    {
-        Field* fields = result->Fetch();
-
-        uint32 npc_entry = fields[0].GetUInt32();
-        CreatureTemplate const* cInfo = GetCreatureTemplate(npc_entry);
-        if (!cInfo)
-        {
-            sLog->outErrorDb("Table npc_spellclick_spells references unknown creature_template %u. Skipping entry.", npc_entry);
-            continue;
-        }
-
-        uint32 spellid = fields[1].GetUInt32();
-        SpellInfo const* spellinfo = sSpellMgr->GetSpellInfo(spellid);
-        if (!spellinfo)
-        {
-            sLog->outErrorDb("Table npc_spellclick_spells references unknown spellid %u. Skipping entry.", spellid);
-            continue;
-        }
-
-        uint8 userType = fields[3].GetUInt16();
-        if (userType >= SPELL_CLICK_USER_MAX)
-            sLog->outErrorDb("Table npc_spellclick_spells references unknown user type %u. Skipping entry.", uint32(userType));
-
-        uint8 castFlags = fields[2].GetUInt8();
-        SpellClickInfo info;
-        info.spellId = spellid;
-        info.castFlags = castFlags;
-        info.userType = SpellClickUserTypes(userType);
-        _spellClickInfoStore.insert(SpellClickInfoContainer::value_type(npc_entry, info));
-
-        ++count;
-    }
-    while (result->NextRow());
-
-    sLog->outString(">> Loaded %u spellclick definitions in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     sLog->outString();
 }
 
@@ -8108,6 +8061,24 @@ CreatureTemplate const* ObjectMgr::GetCreatureTemplate(uint32 entry)
     CreatureTemplateContainer::const_iterator itr = _creatureTemplateStore.find(entry);
     if (itr != _creatureTemplateStore.end())
         return &(itr->second);
+
+    return NULL;
+}
+
+MeetingStone const* ObjectMgr::GetMeetingStone(uint32 entry)
+{
+    MeetingStoneContainer::const_iterator itr = _meetingStoneStore.find(entry);
+    if (itr != _meetingStoneStore.end())
+        return &(itr->second);
+
+    return NULL;
+}
+
+MeetingStone const* ObjectMgr::GetMeetingStoneByAreaId(uint32 areaId)
+{
+    for (MeetingStoneContainer::const_iterator itr = _meetingStoneStore.begin(); itr != _meetingStoneStore.end(); ++itr)
+        if (itr->second.dungeonAreaId == areaId)
+            return &(itr->second);
 
     return NULL;
 }

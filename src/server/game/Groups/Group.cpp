@@ -214,21 +214,22 @@ void Group::ConvertToRaid()
 
     SendUpdate();
 
-    // update quest related GO states (quest activity dependent from raid membership)
-    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+    /*for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
         if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
         {
+            // update quest related GO states (quest activity dependent from raid membership)
             player->UpdateForQuestWorldObjects();
 
-            if (player->IsInMeetingStoneQueue())
+            if (IsInMeetingStoneQueue()) //! This (obviously) targets group
             {
-                std::string dungeonName = player->GetAreaIdInMeetingStoneQueue() ? player->GetMeetingStoneQueueDungeonName(player->GetAreaIdInMeetingStoneQueue()) : "<unkown>";
+                uint32 GUIDLow = player->GetGUIDLow();
+                std::string dungeonName = player->GetAreaIdInMeetingStoneQueue() ? player->GetMeetingStoneQueueDungeonName(GetAreaIdInMeetingStoneQueue(GUIDLow)) : "<unkown>";
                 ChatHandler(player).PSendSysMessage("This group has been removed from the meeting stone queue for dungeon %s because of converting it into a raid group.", dungeonName);
-                player->RemoveFromMeetingStoneQueue();
+                RemovePlayerFromMeetingStoneQueue(GUIDLow);
             }
         }
-    }
+    }*/
 }
 
 bool Group::AddInvite(Player* player)
@@ -300,6 +301,13 @@ Player* Group::GetInvited(const std::string& name) const
     return NULL;
 }
 
+void Group::SendMessageToGroup(char* msg)
+{
+    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+        if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
+            ChatHandler(player).PSendSysMessage(msg);
+}
+
 bool Group::AddMember(Player* player)
 {
     // Get first not-full group
@@ -347,10 +355,8 @@ bool Group::AddMember(Player* player)
     }
 
     if (!isRaidGroup())                                      // reset targetIcons for non-raid-groups
-    {
         for (uint8 i = 0; i < TARGETICONCOUNT; ++i)
             m_targetIcons[i] = 0;
-    }
 
     // insert into the table if we're not a battleground group
     if (!isBGGroup())
@@ -375,7 +381,7 @@ bool Group::AddMember(Player* player)
         if (!IsLeader(player->GetGUID()) && !isBGGroup())
         {
             // reset the new member's instances, unless he is currently in one of them
-            // including raid/heroic instances that they are not permanently bound to!
+            // including raid instances that they are not permanently bound to!
             player->ResetInstances(INSTANCE_RESET_GROUP_JOIN, false);
             player->ResetInstances(INSTANCE_RESET_GROUP_JOIN, true);
         }
@@ -391,18 +397,36 @@ bool Group::AddMember(Player* player)
             m_maxEnchantingLevel = player->GetSkillValue(SKILL_ENCHANTING);
     }
 
-    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+    /*for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
-        if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
+        if (Player* playerInG = ObjectAccessor::FindPlayer(citr->guid))
         {
-            if (player->IsInMeetingStoneQueue())
+            uint32 GUIDLow = playerInG->GetGUIDLow(); //? Is the guid of memberslots GUIDLow or not?
+            //! We aren't checking if playerInG is in queue for MeetingStoneQueue because
+            //! this might ignore the newly invited/added player which will then make the
+            //! whole point of these levelchecks pointless.
+            if (GroupInMeetingStoneQueue())
             {
-                std::string dungeonName = (player->GetAreaIdInMeetingStoneQueue() ? player->GetMeetingStoneQueueDungeonName(player->GetAreaIdInMeetingStoneQueue()) : "<unkown>");
-                ChatHandler(player).PSendSysMessage("This group has been removed from the meeting stone queue for dungeon %s because a player with a too high or too low level was invited to the group.", dungeonName);
-                player->RemoveFromMeetingStoneQueue();
+                if (MeetingStone const* meetingStoneInfo = sObjectMgr->GetMeetingStoneByAreaId(GetAreaIdInMeetingStoneQueue(GUIDLow)))
+                {
+                    std::string dungeonName = (GetAreaIdInMeetingStoneQueue(GUIDLow) ? GetMeetingStoneQueueDungeonName(GUIDLow, GetAreaIdInMeetingStoneQueue(GUIDLow)) : "<unkown>");
+                    if (playerInG->getLevel() > meetingStoneInfo->maxLevel || playerInG->getLevel() < meetingStoneInfo->minLevel)
+                    {
+                        ChatHandler(playerInG).PSendSysMessage("This group has been removed from the meeting stone queue for dungeon %s because a player with a too high or too low level was invited to the group.", dungeonName);
+                        RemovePlayerFromMeetingStoneQueue(GUIDLow);
+                    }
+                    else
+                    {
+                        ChatHandler(playerInG).PSendSysMessage("Player %s was succesfully added to the queue for dungeon %s together with this group.", player->GetName(), dungeonName);
+                        AddPlayerToMeetingStoneQueue(player->GetGUIDLow());
+                    }
+                }
+
+                if (IsFull())
+                    RemoveGroupFromMeetingStoneQueue();
             }
         }
-    }
+    }*/
 
     return true;
 }
@@ -547,7 +571,7 @@ void Group::ChangeLeader(uint64 guid)
             if (itr->second.perm)
             {
                 itr->second.save->RemoveGroup(this);
-                m_boundInstances[i].erase(itr++);
+                m_boundInstances.erase(itr++);
             }
             else
                 ++itr;
@@ -2004,11 +2028,6 @@ void Group::DelinkMember(uint64 guid)
     }
 }
 
-Group::BoundInstancesMap& Group::GetBoundInstances()
-{
-    return m_boundInstances;
-}
-
 void Group::_initRaidSubGroupsCounter()
 {
     // Sub group counters initialization
@@ -2064,3 +2083,20 @@ void Group::ToggleGroupMemberFlag(member_witerator slot, uint8 flag, bool apply)
         slot->flags &= ~flag;
 }
 
+/*bool Group::GroupInMeetingStoneQueue()
+{
+    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+        if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
+            if (PlayerInMeetingStoneQueue(player->GetGUIDLow()))
+                return true;
+
+    return false;
+}
+
+void Group::RemoveGroupFromMeetingStoneQueue()
+{
+    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+        if (Player* player = ObjectAccessor::FindPlayer(citr->guid))
+            if (PlayerInMeetingStoneQueue(player->GetGUIDLow()))
+                RemovePlayerFromMeetingStoneQueue(player->GetGUIDLow());
+}*/

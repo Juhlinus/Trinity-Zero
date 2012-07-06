@@ -112,7 +112,6 @@ public:
             { "mail_level_reward",            SEC_ADMINISTRATOR, true,  &HandleReloadMailLevelRewardCommand,            "", NULL },
             { "mail_loot_template",           SEC_ADMINISTRATOR, true,  &HandleReloadLootTemplatesMailCommand,          "", NULL },
             { "milling_loot_template",        SEC_ADMINISTRATOR, true,  &HandleReloadLootTemplatesMillingCommand,       "", NULL },
-            { "npc_spellclick_spells",        SEC_ADMINISTRATOR, true,  &HandleReloadSpellClickSpellsCommand,           "", NULL},
             { "npc_trainer",                  SEC_ADMINISTRATOR, true,  &HandleReloadNpcTrainerCommand,                 "", NULL },
             { "npc_vendor",                   SEC_ADMINISTRATOR, true,  &HandleReloadNpcVendorCommand,                  "", NULL },
             { "page_text",                    SEC_ADMINISTRATOR, true,  &HandleReloadPageTextsCommand,                  "", NULL },
@@ -216,7 +215,6 @@ public:
         HandleReloadNpcTrainerCommand(handler, "a");
         HandleReloadNpcVendorCommand(handler, "a");
         HandleReloadPointsOfInterestCommand(handler, "a");
-        HandleReloadSpellClickSpellsCommand(handler, "a");
         return true;
     }
 
@@ -728,14 +726,6 @@ public:
         sLog->outString( "Re-Loading Quest POI ..." );
         sObjectMgr->LoadQuestPOI();
         handler->SendGlobalGMSysMessage("DB Table `quest_poi` and `quest_poi_points` reloaded.");
-        return true;
-    }
-
-    static bool HandleReloadSpellClickSpellsCommand(ChatHandler* handler, const char* /*args*/)
-    {
-        sLog->outString("Re-Loading `npc_spellclick_spells` Table!");
-        sObjectMgr->LoadNPCSpellClickSpells();
-        handler->SendGlobalGMSysMessage("DB table `npc_spellclick_spells` reloaded.");
         return true;
     }
 

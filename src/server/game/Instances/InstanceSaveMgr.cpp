@@ -281,13 +281,13 @@ void InstanceSaveManager::LoadResetTimes()
     // get the current reset times for normal instances (these may need to be updated)
     // these are only kept in memory for InstanceSaves that are loaded later
     // resettime = 0 in the DB for raid instances so those are skipped
-    typedef std::pair<uint32, time_t> ResetTimeMapDiffType;
-    typedef std::map<uint32, ResetTimeMapDiffType> InstResetTimeMapDiffType;
-    InstResetTimeMapDiffType instResetTime;
+    typedef std::pair<uint32, time_t> ResetTimeMapType;
+    typedef std::map<uint32, ResetTimeMapType> InstResetTimeMapType;
+    InstResetTimeMapType instResetTime;
 
     // index instance ids by map pairs for fast reset warning send
     typedef std::multimap<uint32, uint32 /*instanceid*/ > ResetTimeMapDiffInstances;
-    ResetTimeMapDiffInstances mapDiffResetInstances;
+    ResetTimeMapDiffInstances mapResetInstances;
 
     QueryResult result = CharacterDatabase.Query("SELECT id, map, resettime FROM instance ORDER BY id ASC");
     if (result)
@@ -309,8 +309,8 @@ void InstanceSaveManager::LoadResetTimes()
             if (time_t resettime = time_t(fields[3].GetUInt32()))
             {
                 uint32 mapid = fields[1].GetUInt16();
-                instResetTime[instanceId] = ResetTimeMapDiffType(MAKE_PAIR32(mapid), resettime);
-                mapDiffResetInstances.insert(ResetTimeMapDiffInstances::value_type(MAKE_PAIR32(mapid), instanceId));
+                instResetTime[instanceId] = ResetTimeMapType(mapid, resettime);
+                mapResetInstances.insert(ResetTimeMapDiffInstances::value_type(mapid, instanceId));
             }
         }
         while (result->NextRow());
@@ -323,7 +323,7 @@ void InstanceSaveManager::LoadResetTimes()
                 Field* fields = result2->Fetch();
                 uint32 instance = fields[1].GetUInt32();
                 time_t resettime = time_t(fields[0].GetUInt32() + 2 * HOUR);
-                InstResetTimeMapDiffType::iterator itr = instResetTime.find(instance);
+                InstResetTimeMapType::iterator itr = instResetTime.find(instance);
                 if (itr != instResetTime.end() && itr->second.second != resettime)
                 {
                     CharacterDatabase.DirectPExecute("UPDATE instance SET resettime = '"UI64FMTD"' WHERE id = '%u'", uint64(resettime), instance);
@@ -334,7 +334,7 @@ void InstanceSaveManager::LoadResetTimes()
         }
 
         // schedule the reset times
-        for (InstResetTimeMapDiffType::iterator itr = instResetTime.begin(); itr != instResetTime.end(); ++itr)
+        for (InstResetTimeMapType::iterator itr = instResetTime.begin(); itr != instResetTime.end(); ++itr)
             if (itr->second.second > now)
                 ScheduleReset(true, itr->second.second, InstResetEvent(0, PAIR32_LOPART(itr->second.first), itr->first));
     }

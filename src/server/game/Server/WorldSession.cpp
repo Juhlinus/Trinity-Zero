@@ -517,12 +517,27 @@ void WorldSession::LogoutPlayer(bool Save)
         if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && m_Socket)
             _player->RemoveFromGroup();
 
-        //! Send update to group and reset stored max enchanting level
-        if (_player->GetGroup())
+        if (Group* group = _player->GetGroup())
         {
-            _player->GetGroup()->SendUpdate();
-            _player->GetGroup()->ResetMaxEnchantingLevel();
+            //! Send update to group and reset stored max enchanting level
+            group->SendUpdate();
+            group->ResetMaxEnchantingLevel();
+
+            //! Patchnote from 1.7.0 (2005-09-13)
+            /*if (group->GroupInMeetingStoneQueue())
+            {
+                if (group->GetLeaderGUID() == _player->GetGUID())
+                {
+                    group->SendMessageToGroup("You were removed from the meeting stone queue as the group leader has logged out.");
+                    group->RemoveGroupFromMeetingStoneQueue();
+                }
+                //else
+                //    group->SetFreeMeetingStoneQueueSpot();
+            }*/
         }
+        //else
+        //    if (PlayerInMeetingStoneQueue(_player->GetGUIDLow()))
+        //        RemovePlayerFromMeetingStoneQueue(_player->GetGUIDLow());
 
         //! Broadcast a logout message to the player's friends
         sSocialMgr->SendFriendStatus(_player, FRIEND_OFFLINE, _player->GetGUIDLow(), true);

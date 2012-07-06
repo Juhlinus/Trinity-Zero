@@ -509,9 +509,6 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask*
 
                     if (GetTypeId() == TYPEID_UNIT)
                     {
-                        if (!target->canSeeSpellClickOn(this->ToCreature()))
-                            appendValue &= ~UNIT_NPC_FLAG_SPELLCLICK;
-
                         if (appendValue & UNIT_NPC_FLAG_TRAINER)
                         {
                             if (!this->ToCreature()->isCanTrainingOf(target, false))
@@ -2051,7 +2048,6 @@ void WorldObject::BuildMonsterChat(WorldPacket* data, uint8 msgtype, char const*
     *data << (uint8)msgtype;
     *data << (uint32)language;
     *data << (uint64)GetGUID();
-    *data << (uint32)0;                                     // 2.1.0
     *data << (uint32)(strlen(name)+1);
     *data << name;
     *data << (uint64)targetGuid;                            // Unit Target

@@ -1,4 +1,4 @@
-ALTER TABLE `characters`.`character_stats` DROP COLUMN `resilience`;
+ALTER TABLE `character_stats` DROP COLUMN `resilience`;
 DROP TABLE IF EXISTS `character_arena_stats`;
 DROP TABLE IF EXISTS `arena_team`;
 DROP TABLE IF EXISTS `arena_team_member`;
@@ -34,4 +34,3 @@ ALTER TABLE guild_member
     DROP COLUMN BankRemSlotsTab4,
     DROP COLUMN BankResetTimeTab5,
     DROP COLUMN BankRemSlotsTab5;
-    

@@ -614,6 +614,9 @@ class ObjectMgr
         GameObjectTemplateContainer const* GetGameObjectTemplates() const { return &_gameObjectTemplateStore; }
         int LoadReferenceVendor(int32 vendor, int32 item_id, std::set<uint32> *skip_vendors);
 
+        MeetingStone const* GetMeetingStone(uint32 entry);
+        MeetingStone const* GetMeetingStoneByAreaId(uint32 areaId);
+
         void LoadGameObjectTemplate();
         void AddGameobjectInfo(GameObjectTemplate* goinfo);
 
@@ -892,8 +895,6 @@ class ObjectMgr
         void LoadPointsOfInterest();
         void LoadQuestPOI();
 
-        void LoadNPCSpellClickSpells();
-
         void LoadGameTele();
 
         void LoadGossipMenu();
@@ -1094,11 +1095,6 @@ class ObjectMgr
         const char * GetScriptName(uint32 id) const { return id < _scriptNamesStore.size() ? _scriptNamesStore[id].c_str() : ""; }
         uint32 GetScriptId(const char *name);
 
-        SpellClickInfoMapBounds GetSpellClickInfoMapBounds(uint32 creature_id) const
-        {
-            return SpellClickInfoMapBounds(_spellClickInfoStore.lower_bound(creature_id), _spellClickInfoStore.upper_bound(creature_id));
-        }
-
         GossipMenusMapBounds GetGossipMenusMapBounds(uint32 uiMenuId) const
         {
             return GossipMenusMapBounds(_gossipMenusStore.lower_bound(uiMenuId), _gossipMenusStore.upper_bound(uiMenuId));
@@ -1242,7 +1238,7 @@ class ObjectMgr
         GameObjectDataContainer _gameObjectDataStore;
         GameObjectLocaleContainer _gameObjectLocaleStore;
         GameObjectTemplateContainer _gameObjectTemplateStore;
-
+        MeetingStoneContainer _meetingStoneStore;
         ItemTemplateContainer _itemTemplateStore;
         ItemLocaleContainer _itemLocaleStore;
         ItemSetNameLocaleContainer _itemSetNameLocaleStore;

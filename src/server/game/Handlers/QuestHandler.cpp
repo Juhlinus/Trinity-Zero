@@ -458,16 +458,8 @@ void WorldSession::HandleQuestConfirmAccept(WorldPacket& recv_data)
         if (!pOriginalPlayer)
             return;
 
-        if (quest->IsRaidQuest())
-        {
-            if (!_player->IsInSameRaidWith(pOriginalPlayer))
-                return;
-        }
-        else
-        {
-            if (!_player->IsInSameGroupWith(pOriginalPlayer))
-                return;
-        }
+        if (!_player->IsInSameGroupWith(pOriginalPlayer))
+            return;
 
         if (_player->CanAddQuest(quest, true))
             _player->AddQuest(quest, NULL);                // NULL, this prevent DB script from duplicate running

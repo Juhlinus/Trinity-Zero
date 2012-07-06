@@ -200,18 +200,14 @@ void AddSC_instance_zulgurub();
 //void AddSC_alterac_mountains(); // Currently empty file
 void AddSC_arathi_highlands();
 void AddSC_blasted_lands();
-void AddSC_boss_kruul();
 void AddSC_burning_steppes();
 void AddSC_duskwood();
 void AddSC_eastern_plaguelands();
 void AddSC_eversong_woods();
-void AddSC_ghostlands();
 void AddSC_hinterlands();
 void AddSC_ironforge();
-void AddSC_isle_of_queldanas();
 void AddSC_loch_modan();
 void AddSC_redridge_mountains();
-void AddSC_silvermoon_city();
 void AddSC_silverpine_forest();
 void AddSC_stormwind_city();
 void AddSC_stranglethorn_vale();
@@ -261,8 +257,6 @@ void AddSC_zulfarrak();                     //Zul'Farrak generic
 void AddSC_instance_zulfarrak();            //Zul'Farrak instance script
 void AddSC_ashenvale();
 void AddSC_azshara();
-void AddSC_azuremyst_isle();
-void AddSC_bloodmyst_isle();
 void AddSC_boss_azuregos();
 void AddSC_darkshore();
 void AddSC_desolace();
@@ -285,11 +279,7 @@ void AddSC_winterspring();
 
 // outdoor pvp
 void AddSC_outdoorpvp_ep();
-void AddSC_outdoorpvp_hp();
-void AddSC_outdoorpvp_na();
 void AddSC_outdoorpvp_si();
-void AddSC_outdoorpvp_tf();
-void AddSC_outdoorpvp_zm();
 
 // player
 void AddSC_chat_log();
@@ -501,18 +491,14 @@ void AddEasternKingdomsScripts()
     //AddSC_alterac_mountains();
     AddSC_arathi_highlands();
     AddSC_blasted_lands();
-    AddSC_boss_kruul();
     AddSC_burning_steppes();
     AddSC_duskwood();
     AddSC_eastern_plaguelands();
     AddSC_eversong_woods();
-    AddSC_ghostlands();
     AddSC_hinterlands();
     AddSC_ironforge();
-    AddSC_isle_of_queldanas();
     AddSC_loch_modan();
     AddSC_redridge_mountains();
-    AddSC_silvermoon_city();
     AddSC_silverpine_forest();
     AddSC_stormwind_city();
     AddSC_stranglethorn_vale();
@@ -567,8 +553,6 @@ void AddKalimdorScripts()
 
     AddSC_ashenvale();
     AddSC_azshara();
-    AddSC_azuremyst_isle();
-    AddSC_bloodmyst_isle();
     AddSC_boss_azuregos();
     AddSC_darkshore();
     AddSC_desolace();
@@ -595,11 +579,7 @@ void AddOutdoorPvPScripts()
 {
 #ifdef SCRIPTS
     AddSC_outdoorpvp_ep();
-    AddSC_outdoorpvp_hp();
-    AddSC_outdoorpvp_na();
     AddSC_outdoorpvp_si();
-    AddSC_outdoorpvp_tf();
-    AddSC_outdoorpvp_zm();
 #endif
 }
 

@@ -743,7 +743,7 @@ struct MapEntry
                                                             // 62 -1, 0 and 720
     uint32  addon;                                          // 63 (0-original maps, 1-tbc addon)
     uint32  unk_time;                                       // 64 some kind of time?
-    //uint32 maxPlayers;                                    // 65 max players
+    uint32 maxPlayers;                                      // 65 max players
 
     // Helpers
     bool IsDungeon() const { return map_type == MAP_INSTANCE || map_type == MAP_RAID; }

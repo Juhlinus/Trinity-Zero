@@ -734,13 +734,12 @@ int WorldSocket::ProcessIncoming(WorldPacket* new_pct)
     ACE_NOTREACHED (return 0);
 }
 
-int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
+int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 {
     // NOTE: ATM the socket is singlethread, have this in mind ...
     uint8 digest[20];
     uint32 clientSeed;
-    uint32 unk2, unk3, unk5, unk6, unk7;
-    uint64 unk4;
+    uint32 unk2, unk3;
     uint32 BuiltNumberClient;
     uint32 id, security;
     LocaleConstant locale;
@@ -767,15 +766,11 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     recvPacket >> account;
     recvPacket >> unk3;
     recvPacket >> clientSeed;
-    recvPacket >> unk5 >> unk6 >> unk7;
-    recvPacket >> unk4;
     recvPacket.read(digest, 20);
 
-    sLog->outStaticDebug ("WorldSocket::HandleAuthSession: client %u, unk2 %u, account %s, unk3 %u, clientseed %u",
+    sLog->outStaticDebug ("WorldSocket::HandleAuthSession: client %u, account: %s, clientseed %u",
                 BuiltNumberClient,
-                unk2,
                 account.c_str(),
-                unk3,
                 clientSeed);
 
     // Get the account information from the realmd database
