@@ -20,7 +20,6 @@
 #define TRINITY_DBCSFRM_H
 
 const char AreaTableEntryfmt[]="iiinixxxxxissssssssssssssssxiiiiixxx";
-const char AreaGroupEntryfmt[]="niiiiiii";
 const char AreaPOIEntryfmt[]="niiiiiiiiiiifffixixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxix";
 const char AreaTriggerEntryfmt[]="niffffffff";
 const char AuctionHouseEntryfmt[]="niiixxxxxxxxxxxxxxxxx";

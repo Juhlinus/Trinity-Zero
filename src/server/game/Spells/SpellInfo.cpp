@@ -1282,17 +1282,6 @@ SpellCastResult SpellInfo::CheckLocation(uint32 map_id, uint32 zone_id, uint32 a
     if (AreaGroupId > 0)
     {
         bool found = false;
-        AreaGroupEntry const* groupEntry = sAreaGroupStore.LookupEntry(AreaGroupId);
-        while (groupEntry)
-        {
-            for (uint8 i = 0; i < MAX_GROUP_AREA_IDS; ++i)
-                if (groupEntry->AreaId[i] == zone_id || groupEntry->AreaId[i] == area_id)
-                    found = true;
-            if (found || !groupEntry->nextGroup)
-                break;
-            // Try search in next group
-            groupEntry = sAreaGroupStore.LookupEntry(groupEntry->nextGroup);
-        }
 
         if (!found)
             return SPELL_FAILED_INCORRECT_AREA;
