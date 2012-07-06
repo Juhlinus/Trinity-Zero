@@ -8,7 +8,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-file(GLOB sources_mpq libmpq/*.c libmpq/*.h)
+file(GLOB sources_mpq libmpq/*.cpp libmpq/*.h)
 
 set(mpq_STAT_SRCS
   ${sources_mpq}
