@@ -770,7 +770,6 @@ enum SpellEffects
     SPELL_EFFECT_PULL_TOWARDS                       = 124,
     SPELL_EFFECT_MODIFY_THREAT_PERCENT              = 125,
     SPELL_EFFECT_STEAL_BENEFICIAL_BUFF              = 126,
-    SPELL_EFFECT_PROSPECTING                        = 127,
     SPELL_EFFECT_APPLY_AREA_AURA_FRIEND             = 128,
     SPELL_EFFECT_APPLY_AREA_AURA_ENEMY              = 129,
     SPELL_EFFECT_REDIRECT_THREAT                    = 130,
@@ -794,13 +793,11 @@ enum SpellEffects
     SPELL_EFFECT_CHARGE_DEST                        = 149,
     SPELL_EFFECT_QUEST_START                        = 150,
     SPELL_EFFECT_TRIGGER_SPELL_2                    = 151,
-    SPELL_EFFECT_SUMMON_RAF_FRIEND                  = 152,
     SPELL_EFFECT_CREATE_TAMED_PET                   = 153,
     SPELL_EFFECT_DISCOVER_TAXI                      = 154,
     SPELL_EFFECT_TITAN_GRIP                         = 155,
     SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC             = 156,
     SPELL_EFFECT_CREATE_ITEM_2                      = 157,
-    SPELL_EFFECT_MILLING                            = 158,
     SPELL_EFFECT_ALLOW_RENAME_PET                   = 159,
     SPELL_EFFECT_160                                = 160,
     SPELL_EFFECT_TALENT_SPEC_COUNT                  = 161,
@@ -829,7 +826,6 @@ enum SpellCastResult
     SPELL_FAILED_CANT_BE_DISENCHANTED = 14,
     SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL = 15,
     SPELL_FAILED_CANT_BE_MILLED = 16,
-    SPELL_FAILED_CANT_BE_PROSPECTED = 17,
     SPELL_FAILED_CANT_CAST_ON_TAPPED = 18,
     SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE = 19,
     SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED = 20,
@@ -984,14 +980,12 @@ enum SpellCastResult
     SPELL_FAILED_NOT_ON_GROUND = 171,
     SPELL_FAILED_CUSTOM_ERROR = 172,
     SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW = 173,
-    SPELL_FAILED_TOO_MANY_SOCKETS = 174,
     SPELL_FAILED_NO_VALID_TARGETS = 178,
     SPELL_FAILED_ITEM_AT_MAX_CHARGES = 179,
     SPELL_FAILED_NOT_IN_BARBERSHOP = 180,
     SPELL_FAILED_FISHING_TOO_LOW = 181,
     SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW = 182,
     SPELL_FAILED_SUMMON_PENDING = 183,
-    SPELL_FAILED_MAX_SOCKETS = 184,
     SPELL_FAILED_PET_CAN_RENAME = 185,
     SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED = 186,
     SPELL_FAILED_UNKNOWN = 187, // actually doesn't exist in client
@@ -1097,7 +1091,7 @@ enum SpellCustomErrors
     SPELL_CUSTOM_ERROR_93                               = 93, // ""
     SPELL_CUSTOM_ERROR_94                               = 94, // ""
     SPELL_CUSTOM_ERROR_95                               = 95, // ""
-    SPELL_CUSTOM_ERROR_MAX_NUMBER_OF_RECRUITS           = 96, // You already have the max number of recruits.
+    //SPELL_CUSTOM_ERROR_MAX_NUMBER_OF_RECRUITS           = 96, // You already have the max number of recruits. //! TrinityZero removal: RaF.
     SPELL_CUSTOM_ERROR_MAX_NUMBER_OF_VOLUNTEERS         = 97, // You already have the max number of volunteers.
     SPELL_CUSTOM_ERROR_FROSTMOURNE_RENDERED_RESSURECT   = 98, // Frostmourne has rendered you unable to ressurect.
     SPELL_CUSTOM_ERROR_CANT_MOUNT_WITH_SHAPESHIFT       = 99, // You can't mount while affected by that shapeshift.
@@ -2446,7 +2440,7 @@ enum LockType
     LOCKTYPE_DISARM_TRAP           = 4,
     LOCKTYPE_OPEN                  = 5,
     LOCKTYPE_TREASURE              = 6,
-    LOCKTYPE_CALCIFIED_ELVEN_GEMS  = 7,
+    //LOCKTYPE_CALCIFIED_ELVEN_GEMS  = 7,
     LOCKTYPE_CLOSE                 = 8,
     LOCKTYPE_ARM_TRAP              = 9,
     LOCKTYPE_QUICK_OPEN            = 10,
@@ -2459,7 +2453,7 @@ enum LockType
     LOCKTYPE_SLOW_OPEN             = 17,
     LOCKTYPE_SLOW_CLOSE            = 18,
     LOCKTYPE_FISHING               = 19,
-    LOCKTYPE_INSCRIPTION           = 20,
+    //LOCKTYPE_INSCRIPTION           = 20,
     LOCKTYPE_OPEN_FROM_VEHICLE     = 21
 };
 
@@ -2671,8 +2665,8 @@ enum QuestSort
     QUEST_SORT_INVASION            = 368,
     QUEST_SORT_MIDSUMMER           = 369,
     QUEST_SORT_BREWFEST            = 370,
-    QUEST_SORT_INSCRIPTION         = 371,
-    QUEST_SORT_JEWELCRAFTING       = 373,
+    //QUEST_SORT_INSCRIPTION         = 371,
+    //QUEST_SORT_JEWELCRAFTING       = 373,
     QUEST_SORT_NOBLEGARDEN         = 374,
     QUEST_SORT_PILGRIMS_BOUNTY     = 375,
     QUEST_SORT_LOVE_IS_IN_THE_AIR  = 376,
@@ -2818,7 +2812,7 @@ enum SkillType
     SKILL_RACIAL_TROLL             = 733,
     SKILL_RACIAL_GNOME             = 753,
     SKILL_RACIAL_HUMAN             = 754,
-    SKILL_JEWELCRAFTING            = 755,
+    //SKILL_JEWELCRAFTING            = 755,
     SKILL_PET_EVENT_RC             = 758,
     SKILL_PET_FELGUARD             = 761,
     SKILL_RIDING                   = 762,
@@ -2829,7 +2823,7 @@ enum SkillType
     SKILL_PET_RAVAGER              = 767,
     SKILL_PET_SERPENT              = 768,
     SKILL_INTERNAL                 = 769,
-    SKILL_INSCRIPTION              = 773,
+    //SKILL_INSCRIPTION              = 773,
     SKILL_PET_MOTH                 = 775,
     SKILL_MOUNTS                   = 777,
     SKILL_COMPANIONS               = 778,
@@ -2854,7 +2848,7 @@ inline SkillType SkillByLockType(LockType locktype)
         case LOCKTYPE_HERBALISM:   return SKILL_HERBALISM;
         case LOCKTYPE_MINING:      return SKILL_MINING;
         case LOCKTYPE_FISHING:     return SKILL_FISHING;
-        case LOCKTYPE_INSCRIPTION: return SKILL_INSCRIPTION;
+        //case LOCKTYPE_INSCRIPTION: return SKILL_INSCRIPTION;
         default: break;
     }
     return SKILL_NONE;
@@ -2873,8 +2867,8 @@ inline uint32 SkillByQuestSort(int32 QuestSort)
         case QUEST_SORT_TAILORING:      return SKILL_TAILORING;
         case QUEST_SORT_COOKING:        return SKILL_COOKING;
         case QUEST_SORT_FIRST_AID:      return SKILL_FIRST_AID;
-        case QUEST_SORT_JEWELCRAFTING:  return SKILL_JEWELCRAFTING;
-        case QUEST_SORT_INSCRIPTION:    return SKILL_INSCRIPTION;
+        //case QUEST_SORT_JEWELCRAFTING:  return SKILL_JEWELCRAFTING;
+        //case QUEST_SORT_INSCRIPTION:    return SKILL_INSCRIPTION;
     }
     return 0;
 }
@@ -2936,7 +2930,7 @@ enum UnitDynFlags
     UNIT_DYNFLAG_TAPPED_BY_PLAYER           = 0x0008,       // Lua_UnitIsTappedByPlayer
     UNIT_DYNFLAG_SPECIALINFO                = 0x0010,
     UNIT_DYNFLAG_DEAD                       = 0x0020,
-    UNIT_DYNFLAG_REFER_A_FRIEND             = 0x0040,
+    //UNIT_DYNFLAG_REFER_A_FRIEND             = 0x0040,
     UNIT_DYNFLAG_TAPPED_BY_ALL_THREAT_LIST  = 0x0080        // Lua_UnitIsTappedByAllThreatList
 };
 

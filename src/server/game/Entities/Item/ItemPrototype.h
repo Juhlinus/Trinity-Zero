@@ -126,7 +126,6 @@ enum ItemProtoFlags
     ITEM_PROTO_FLAG_UNK6                        = 0x00008000, // ?
     ITEM_PROTO_FLAG_UNK7                        = 0x00010000, // ?
     ITEM_PROTO_FLAG_UNK8                        = 0x00020000, // ?
-    ITEM_PROTO_FLAG_PROSPECTABLE                = 0x00040000, // Item can be prospected
     ITEM_PROTO_FLAG_UNIQUE_EQUIPPED             = 0x00080000, // You can only equip one of these
     ITEM_PROTO_FLAG_UNK9                        = 0x00100000, // ?
     ITEM_PROTO_FLAG_THROWABLE                   = 0x00400000, // Some Thrown weapons have it (and only Thrown) but not all
@@ -202,28 +201,18 @@ enum BAG_FAMILY_MASK
     BAG_FAMILY_MASK_BULLETS                   = 0x00000002,
     BAG_FAMILY_MASK_SOUL_SHARDS               = 0x00000004,
     BAG_FAMILY_MASK_LEATHERWORKING_SUPP       = 0x00000008,
-    BAG_FAMILY_MASK_INSCRIPTION_SUPP          = 0x00000010,
+    //BAG_FAMILY_MASK_INSCRIPTION_SUPP          = 0x00000010,
     BAG_FAMILY_MASK_HERBS                     = 0x00000020,
     BAG_FAMILY_MASK_ENCHANTING_SUPP           = 0x00000040,
     BAG_FAMILY_MASK_ENGINEERING_SUPP          = 0x00000080,
     BAG_FAMILY_MASK_KEYS                      = 0x00000100,
-    BAG_FAMILY_MASK_GEMS                      = 0x00000200,
+    //BAG_FAMILY_MASK_GEMS                      = 0x00000200,
     BAG_FAMILY_MASK_MINING_SUPP               = 0x00000400,
     BAG_FAMILY_MASK_SOULBOUND_EQUIPMENT       = 0x00000800,
     BAG_FAMILY_MASK_VANITY_PETS               = 0x00001000,
     BAG_FAMILY_MASK_CURRENCY_TOKENS           = 0x00002000,
     BAG_FAMILY_MASK_QUEST_ITEMS               = 0x00004000
 };
-
-enum SocketColor
-{
-    SOCKET_COLOR_META                           = 1,
-    SOCKET_COLOR_RED                            = 2,
-    SOCKET_COLOR_YELLOW                         = 4,
-    SOCKET_COLOR_BLUE                           = 8
-};
-
-#define SOCKET_COLOR_ALL (SOCKET_COLOR_META | SOCKET_COLOR_RED | SOCKET_COLOR_YELLOW | SOCKET_COLOR_BLUE)
 
 enum InventoryType
 {
@@ -304,10 +293,10 @@ enum ItemSubclassContainer
     ITEM_SUBCLASS_HERB_CONTAINER                = 2,
     ITEM_SUBCLASS_ENCHANTING_CONTAINER          = 3,
     ITEM_SUBCLASS_ENGINEERING_CONTAINER         = 4,
-    ITEM_SUBCLASS_GEM_CONTAINER                 = 5,
+    //ITEM_SUBCLASS_GEM_CONTAINER                 = 5,
     ITEM_SUBCLASS_MINING_CONTAINER              = 6,
     ITEM_SUBCLASS_LEATHERWORKING_CONTAINER      = 7,
-    ITEM_SUBCLASS_INSCRIPTION_CONTAINER         = 8
+    //ITEM_SUBCLASS_INSCRIPTION_CONTAINER         = 8
 };
 
 #define MAX_ITEM_SUBCLASS_CONTAINER               9
@@ -398,7 +387,7 @@ enum ItemSubclassTradeGoods
     ITEM_SUBCLASS_PARTS                         = 1,
     ITEM_SUBCLASS_EXPLOSIVES                    = 2,
     ITEM_SUBCLASS_DEVICES                       = 3,
-    ITEM_SUBCLASS_JEWELCRAFTING                 = 4,
+    //ITEM_SUBCLASS_JEWELCRAFTING                 = 4,
     ITEM_SUBCLASS_CLOTH                         = 5,
     ITEM_SUBCLASS_LEATHER                       = 6,
     ITEM_SUBCLASS_METAL_STONE                   = 7,
@@ -433,10 +422,9 @@ enum ItemSubclassRecipe
     ITEM_SUBCLASS_FIRST_AID_MANUAL              = 7,
     ITEM_SUBCLASS_ENCHANTING_FORMULA            = 8,
     ITEM_SUBCLASS_FISHING_MANUAL                = 9,
-    ITEM_SUBCLASS_JEWELCRAFTING_RECIPE          = 10
+    //ITEM_SUBCLASS_JEWELCRAFTING_RECIPE          = 10
+    MAX_ITEM_SUBCLASS_RECIPE,
 };
-
-#define MAX_ITEM_SUBCLASS_RECIPE                  11
 
 enum ItemSubclassMoney
 {
@@ -549,14 +537,8 @@ struct _Spell
     int32  SpellCategoryCooldown;
 };
 
-struct _Socket
-{
-    uint32 Color;
-    uint32 Content;
-};
-
 #define MAX_ITEM_PROTO_DAMAGES 2                            // changed in 3.1.0
-#define MAX_ITEM_PROTO_SOCKETS 3
+//#define MAX_ITEM_PROTO_SOCKETS 3
 #define MAX_ITEM_PROTO_SPELLS  5
 #define MAX_ITEM_PROTO_STATS  10
 
@@ -623,9 +605,9 @@ struct ItemTemplate
     uint32 Map;                                             // id from Map.dbc
     uint32 BagFamily;                                       // bit mask (1 << id from ItemBagFamily.dbc)
     uint32 TotemCategory;                                   // id from TotemCategory.dbc
-    _Socket Socket[MAX_ITEM_PROTO_SOCKETS];
-    uint32 socketBonus;                                     // id from SpellItemEnchantment.dbc
-    uint32 GemProperties;                                   // id from GemProperties.dbc
+    //_Socket Socket[MAX_ITEM_PROTO_SOCKETS];
+    //uint32 socketBonus;                                     // id from SpellItemEnchantment.dbc
+    //uint32 GemProperties;                                   // id from GemProperties.dbc
     uint32 RequiredDisenchantSkill;
     float  ArmorDamageModifier;
     uint32 Duration;

@@ -43,9 +43,9 @@ LootStore LootTemplates_Fishing("fishing_loot_template",             "area id", 
 LootStore LootTemplates_Gameobject("gameobject_loot_template",       "gameobject entry",                true);
 LootStore LootTemplates_Item("item_loot_template",                   "item entry",                      true);
 LootStore LootTemplates_Mail("mail_loot_template",                   "mail template id",                false);
-LootStore LootTemplates_Milling("milling_loot_template",             "item entry (herb)",               true);
+//LootStore LootTemplates_Milling("milling_loot_template",             "item entry (herb)",               true);
 LootStore LootTemplates_Pickpocketing("pickpocketing_loot_template", "creature pickpocket lootid",      true);
-LootStore LootTemplates_Prospecting("prospecting_loot_template",     "item entry (ore)",                true);
+//LootStore LootTemplates_Prospecting("prospecting_loot_template",     "item entry (ore)",                true);
 LootStore LootTemplates_Reference("reference_loot_template",         "reference id",                    false);
 LootStore LootTemplates_Skinning("skinning_loot_template",           "creature skinning id",            true);
 LootStore LootTemplates_Spell("spell_loot_template",                 "spell id (random item creating)", false);
@@ -1572,40 +1572,9 @@ void LoadLootTemplates_Item()
     LootTemplates_Item.ReportUnusedIds(lootIdSet);
 
     if (count)
-        sLog->outString(">> Loaded %u prospecting loot templates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+        sLog->outString(">> Loaded %u item loot templates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     else
-        sLog->outErrorDb(">> Loaded 0 prospecting loot templates. DB table `item_loot_template` is empty");
-
-    sLog->outString();
-}
-
-void LoadLootTemplates_Milling()
-{
-    sLog->outString("Loading milling loot templates...");
-
-    uint32 oldMSTime = getMSTime();
-
-    LootIdSet lootIdSet;
-    uint32 count = LootTemplates_Milling.LoadAndCollectLootIds(lootIdSet);
-
-    // remove real entries and check existence loot
-    ItemTemplateContainer const* its = sObjectMgr->GetItemTemplateStore();
-    for (ItemTemplateContainer::const_iterator itr = its->begin(); itr != its->end(); ++itr)
-    {
-        if (!(itr->second.Flags & ITEM_PROTO_FLAG_MILLABLE))
-            continue;
-
-        if (lootIdSet.find(itr->second.ItemId) != lootIdSet.end())
-            lootIdSet.erase(itr->second.ItemId);
-    }
-
-    // output error for any still listed (not referenced from appropriate table) ids
-    LootTemplates_Milling.ReportUnusedIds(lootIdSet);
-
-    if (count)
-        sLog->outString(">> Loaded %u milling loot templates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
-    else
-        sLog->outErrorDb(">> Loaded 0 milling loot templates. DB table `milling_loot_template` is empty");
+        sLog->outErrorDb(">> Loaded 0 item loot templates. DB table `item_loot_template` is empty");
 
     sLog->outString();
 }
@@ -1642,37 +1611,6 @@ void LoadLootTemplates_Pickpocketing()
         sLog->outString(">> Loaded %u pickpocketing loot templates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     else
         sLog->outErrorDb(">> Loaded 0 pickpocketing loot templates. DB table `pickpocketing_loot_template` is empty");
-
-    sLog->outString();
-}
-
-void LoadLootTemplates_Prospecting()
-{
-    sLog->outString("Loading prospecting loot templates...");
-
-    uint32 oldMSTime = getMSTime();
-
-    LootIdSet lootIdSet;
-    uint32 count = LootTemplates_Prospecting.LoadAndCollectLootIds(lootIdSet);
-
-    // remove real entries and check existence loot
-    ItemTemplateContainer const* its = sObjectMgr->GetItemTemplateStore();
-    for (ItemTemplateContainer::const_iterator itr = its->begin(); itr != its->end(); ++itr)
-    {
-        if (!(itr->second.Flags & ITEM_PROTO_FLAG_PROSPECTABLE))
-            continue;
-
-        if (lootIdSet.find(itr->second.ItemId) != lootIdSet.end())
-            lootIdSet.erase(itr->second.ItemId);
-    }
-
-    // output error for any still listed (not referenced from appropriate table) ids
-    LootTemplates_Prospecting.ReportUnusedIds(lootIdSet);
-
-    if (count)
-        sLog->outString(">> Loaded %u prospecting loot templates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
-    else
-        sLog->outErrorDb(">> Loaded 0 prospecting loot templates. DB table `prospecting_loot_template` is empty");
 
     sLog->outString();
 }
@@ -1793,11 +1731,11 @@ void LoadLootTemplates_Reference()
     LootTemplates_Fishing.CheckLootRefs(&lootIdSet);
     LootTemplates_Gameobject.CheckLootRefs(&lootIdSet);
     LootTemplates_Item.CheckLootRefs(&lootIdSet);
-    LootTemplates_Milling.CheckLootRefs(&lootIdSet);
+    //LootTemplates_Milling.CheckLootRefs(&lootIdSet);
     LootTemplates_Pickpocketing.CheckLootRefs(&lootIdSet);
     LootTemplates_Skinning.CheckLootRefs(&lootIdSet);
     LootTemplates_Disenchant.CheckLootRefs(&lootIdSet);
-    LootTemplates_Prospecting.CheckLootRefs(&lootIdSet);
+    //LootTemplates_Prospecting.CheckLootRefs(&lootIdSet);
     LootTemplates_Mail.CheckLootRefs(&lootIdSet);
     LootTemplates_Reference.CheckLootRefs(&lootIdSet);
 

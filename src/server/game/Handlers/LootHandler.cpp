@@ -362,23 +362,8 @@ void WorldSession::DoLootRelease(uint64 lguid)
 
         ItemTemplate const* proto = pItem->GetTemplate();
 
-        // destroy only 5 items from stack in case prospecting and milling
-        if (proto->Flags & (ITEM_PROTO_FLAG_PROSPECTABLE | ITEM_PROTO_FLAG_MILLABLE))
-        {
-            pItem->m_lootGenerated = false;
-            pItem->loot.clear();
-
-            uint32 count = pItem->GetCount();
-
-            // >=5 checked in spell code, but will work for cheating cases also with removing from another stacks.
-            if (count > 5)
-                count = 5;
-
-            player->DestroyItemCount(pItem, count, true);
-        }
-        else
-            // FIXME: item must not be deleted in case not fully looted state. But this pre-request implement loot saving in DB at item save. Or cheating possible.
-            player->DestroyItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
+        // FIXME: item must not be deleted in case not fully looted state. But this pre-request implement loot saving in DB at item save. Or cheating possible.
+        player->DestroyItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
         return;                                             // item can be looted only single player
     }
     else

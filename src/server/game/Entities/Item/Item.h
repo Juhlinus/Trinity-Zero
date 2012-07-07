@@ -108,18 +108,13 @@ enum InventoryResult
     EQUIP_ERR_ITEM_UNIQUE_EQUIPABLE              = 67,
     EQUIP_ERR_VENDOR_MISSING_TURNINS             = 68,
     EQUIP_ERR_NOT_ENOUGH_HONOR_POINTS            = 69,
-    EQUIP_ERR_ITEM_MAX_COUNT_SOCKETED            = 71,
     EQUIP_ERR_MAIL_BOUND_ITEM                    = 72,
-    EQUIP_ERR_NO_SPLIT_WHILE_PROSPECTING         = 73,
-    EQUIP_ERR_ITEM_MAX_COUNT_EQUIPPED_SOCKETED   = 75,
-    EQUIP_ERR_ITEM_UNIQUE_EQUIPPABLE_SOCKETED    = 76,
     EQUIP_ERR_TOO_MUCH_GOLD                      = 77,
     EQUIP_ERR_CANNOT_TRADE_THAT                  = 79,
     EQUIP_ERR_EVENT_AUTOEQUIP_BIND_CONFIRM       = 81,
     EQUIP_ERR_ARTEFACTS_ONLY_FOR_OWN_CHARACTERS  = 82,
     // no output                                 = 83,
     EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED     = 84,
-    EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_SOCKETED_EXCEEDED  = 85,
     EQUIP_ERR_SCALING_STAT_ITEM_LEVEL_EXCEEDED           = 86,
     EQUIP_ERR_PURCHASE_LEVEL_TOO_LOW                     = 87,
     EQUIP_ERR_CANT_EQUIP_NEED_TALENT                     = 88,
@@ -152,13 +147,14 @@ enum SellResult
 // -1 from client enchantment slot number
 enum EnchantmentSlot
 {
+    //! TrinityZero note: won't removing these cause errors/problems/whatever?
     PERM_ENCHANTMENT_SLOT           = 0,
     TEMP_ENCHANTMENT_SLOT           = 1,
-    SOCK_ENCHANTMENT_SLOT           = 2,
+    /*SOCK_ENCHANTMENT_SLOT           = 2,
     SOCK_ENCHANTMENT_SLOT_2         = 3,
-    SOCK_ENCHANTMENT_SLOT_3         = 4,
+    SOCK_ENCHANTMENT_SLOT_3         = 4,*/
     BONUS_ENCHANTMENT_SLOT          = 5,
-    PRISMATIC_ENCHANTMENT_SLOT      = 6,                    // added at apply special permanent enchantment
+    //PRISMATIC_ENCHANTMENT_SLOT      = 6,                    // added at apply special permanent enchantment
     MAX_INSPECTED_ENCHANTMENT_SLOT  = 7,
 
     PROP_ENCHANTMENT_SLOT_0         = 7,                    // used with RandomSuffix
@@ -170,8 +166,6 @@ enum EnchantmentSlot
 };
 
 #define MAX_VISIBLE_ITEM_OFFSET       2                     // 2 fields per visible item (entry+enchantment)
-
-#define MAX_GEM_SOCKETS               MAX_ITEM_PROTO_SOCKETS// (BONUS_ENCHANTMENT_SLOT-SOCK_ENCHANTMENT_SLOT) and item proto size, equal value expected
 
 enum EnchantmentOffset
 {
@@ -249,13 +243,10 @@ class Item : public Object
 
         bool IsFitToSpellRequirements(SpellInfo const* spellInfo) const;
         bool IsLimitedToAnotherMapOrZone(uint32 cur_mapId, uint32 cur_zoneId) const;
-        bool GemsFitSockets() const;
 
         uint32 GetCount() const { return GetUInt32Value(ITEM_FIELD_STACK_COUNT); }
         void SetCount(uint32 value) { SetUInt32Value(ITEM_FIELD_STACK_COUNT, value); }
         uint32 GetMaxStackCount() const { return GetTemplate()->GetMaxStackSize(); }
-        uint8 GetGemCountWithID(uint32 GemID) const;
-        uint8 GetGemCountWithLimitCategory(uint32 limitCategory) const;
         InventoryResult CanBeMergedPartlyWith(ItemTemplate const* proto) const;
 
         uint8 GetSlot() const {return m_slot;}

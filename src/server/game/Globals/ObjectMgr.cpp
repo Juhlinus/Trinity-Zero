@@ -1921,14 +1921,15 @@ void ObjectMgr::LoadItemTemplates()
         itemTemplate.BagFamily      = fields[117].GetUInt32();
         itemTemplate.TotemCategory  = fields[118].GetUInt32();
 
-        for (uint8 i = 0; i < MAX_ITEM_PROTO_SOCKETS; ++i)
+        //! TrinityZero removal.
+        /*for (uint8 i = 0; i < MAX_ITEM_PROTO_SOCKETS; ++i)
         {
             itemTemplate.Socket[i].Color   = uint32(fields[119 + i*2].GetUInt8());
             itemTemplate.Socket[i].Content = fields[120 + i*2].GetUInt32();
         }
 
         itemTemplate.socketBonus             = fields[125].GetUInt32();
-        itemTemplate.GemProperties           = fields[126].GetUInt32();
+        itemTemplate.GemProperties           = fields[126].GetUInt32();*/
         itemTemplate.RequiredDisenchantSkill = uint32(fields[127].GetInt16());
         itemTemplate.ArmorDamageModifier     = fields[128].GetFloat();
         itemTemplate.Duration                = fields[129].GetUInt32();
@@ -2316,18 +2317,6 @@ void ObjectMgr::LoadItemTemplates()
 
         if (itemTemplate.TotemCategory && !sTotemCategoryStore.LookupEntry(itemTemplate.TotemCategory))
             sLog->outErrorDb("Item (Entry: %u) has wrong TotemCategory (%u)", entry, itemTemplate.TotemCategory);
-
-        for (uint8 j = 0; j < MAX_ITEM_PROTO_SOCKETS; ++j)
-        {
-            if (itemTemplate.Socket[j].Color && (itemTemplate.Socket[j].Color & SOCKET_COLOR_ALL) != itemTemplate.Socket[j].Color)
-            {
-                sLog->outErrorDb("Item (Entry: %u) has wrong socketColor_%d (%u)", entry, j+1, itemTemplate.Socket[j].Color);
-                itemTemplate.Socket[j].Color = 0;
-            }
-        }
-
-        if (itemTemplate.GemProperties && !sGemPropertiesStore.LookupEntry(itemTemplate.GemProperties))
-            sLog->outErrorDb("Item (Entry: %u) has wrong GemProperties (%u)", entry, itemTemplate.GemProperties);
 
         if (itemTemplate.FoodType >= MAX_PET_DIET)
         {

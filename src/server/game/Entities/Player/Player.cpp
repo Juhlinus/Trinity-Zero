@@ -786,8 +786,6 @@ Player::Player(WorldSession* session): Unit(true), m_reputationMgr(this)
     m_lastFallTime = 0;
     m_lastFallZ = 0;
 
-    m_grantableLevels = 0;
-
     m_ControlledByPlayer = true;
 
     sWorld->IncreasePlayerCount();
@@ -913,10 +911,7 @@ bool Player::Create(uint32 guidlow, CharacterCreateInfo* createInfo)
     SetInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, uint32(-1));
 
     SetUInt32Value(PLAYER_BYTES, (createInfo->Skin | (createInfo->Face << 8) | (createInfo->HairStyle << 16) | (createInfo->HairColor << 24)));
-    SetUInt32Value(PLAYER_BYTES_2, (createInfo->FacialHair |
-                                   (0x00 << 8) |
-                                   (0x00 << 16) |
-                                   (((GetSession()->IsARecruiter() || GetSession()->GetRecruiterId() != 0) ? REST_STATE_RAF_LINKED : REST_STATE_NOT_RAF_LINKED) << 24)));
+    SetUInt32Value(PLAYER_BYTES_2, (createInfo->FacialHair | (0x00 << 8) | (0x00 << 16)));// | (REST_STATE_NOT_RAF_LINKED << 24)));
     SetByteValue(PLAYER_BYTES_3, 0, createInfo->Gender);
     
     //! TrinityZero note: what to do here?
@@ -2776,7 +2771,7 @@ void Player::RemoveFromGroup(Group* group, uint64 guid, RemoveMethod method /* =
     }
 }
 
-void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, bool recruitAFriend, float /*group_rate*/)
+void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, float /*group_rate*/)
 {
     WorldPacket data(SMSG_LOG_XPGAIN, 21); // guess size?
     data << uint64(victim ? victim->GetGUID() : 0);         // guid
@@ -2791,7 +2786,7 @@ void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, bool re
         data << float(1);                                   // 1 - none 0 - 100% group bonus output
     }
 
-    data << uint8(recruitAFriend ? 1 : 0);                  // does the GivenXP include a RaF bonus?
+    data << uint8(0);
     GetSession()->SendPacket(&data);
 }
 
@@ -2826,15 +2821,9 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate)
         return;
 
     uint32 bonus_xp = 0;
-    bool recruitAFriend = GetsRecruitAFriendBonus(true);
+    bonus_xp = victim ? GetXPRestBonus(xp) : 0; // XP resting bonus
 
-    // RaF does NOT stack with rested experience
-    if (recruitAFriend)
-        bonus_xp = 2 * xp; // xp + bonus_xp must add up to 3 * xp for RaF; calculation for quests done client-side
-    else
-        bonus_xp = victim ? GetXPRestBonus(xp) : 0; // XP resting bonus
-
-    SendLogXPGain(xp, victim, bonus_xp, recruitAFriend, group_rate);
+    SendLogXPGain(xp, victim, bonus_xp, group_rate);
 
     uint32 curXP = GetUInt32Value(PLAYER_XP);
     uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
@@ -2935,22 +2924,7 @@ void Player::GiveLevel(uint8 level)
         CharacterDatabase.CommitTransaction(trans);
     }
 
-    // Refer-A-Friend
-    if (GetSession()->GetRecruiterId())
-    {
-        if (level < sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL))
-        {
-            if (level % 2 == 0)
-            {
-                ++m_grantableLevels;
-
-                if (!HasByteFlag(PLAYER_FIELD_BYTES, 1, 0x01))
-                    SetByteFlag(PLAYER_FIELD_BYTES, 1, 0x01);
-            }
-        }
-    }
-
-/*    if (PlayerInMeetingStoneQueue(GetGUIDLow()))
+    /*if (PlayerInMeetingStoneQueue(GetGUIDLow()))
     {
         uint32 GUIDLow = GetGUIDLow();
         if (MeetingStone const* meetingStoneInfo = sObjectMgr->GetMeetingStoneByAreaId(GetAreaIdInMeetingStoneQueue(GUIDLow)))
@@ -5031,14 +5005,9 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
         RemoveAurasDueToSpell(20584);                       // speed bonuses
     RemoveAurasDueToSpell(8326);                            // SPELL_AURA_GHOST
 
-    if (GetSession()->IsARecruiter() || (GetSession()->GetRecruiterId() != 0))
-        SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_REFER_A_FRIEND);
-
     setDeathState(ALIVE);
-
     SetMovement(MOVE_LAND_WALK);
     SetMovement(MOVE_UNROOT);
-
     m_deathTimer = 0;
 
     // set health/powers (0- will be set in caller)
@@ -6042,8 +6011,6 @@ bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue, uint32 RedLeve
     {
         case SKILL_HERBALISM:
         case SKILL_LOCKPICKING:
-        case SKILL_JEWELCRAFTING:
-        case SKILL_INSCRIPTION:
             return UpdateSkillPro(SkillId, SkillGainChance(SkillValue, RedLevel+100, RedLevel+50, RedLevel+25)*Multiplicator, gathering_skill_gain);
         case SKILL_SKINNING:
             if (sWorld->getIntConfig(CONFIG_SKILL_CHANCE_SKINNING_STEPS) == 0)
@@ -6846,16 +6813,10 @@ void Player::RewardReputation(Unit* victim, float rate)
     if (favored_rep_mult > 0) favored_rep_mult *= 2; // Multiplied by 2 because the reputation is divided by 2 for some reason (See "donerep1 / 2" and "donerep2 / 2") -- if you know why this is done, please update/explain :)
     // Favored reputation increase END
 
-    bool recruitAFriend = GetsRecruitAFriendBonus(false);
-
     if (Rep->RepFaction1 && (!Rep->TeamDependent || team == ALLIANCE))
     {
         int32 donerep1 = CalculateReputationGain(victim->getLevel(), Rep->RepValue1, Rep->RepFaction1, false);
         donerep1 = int32(donerep1*(rate + favored_rep_mult));
-
-        if (recruitAFriend)
-            donerep1 = int32(donerep1 * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
-
         FactionEntry const* factionEntry1 = sFactionStore.LookupEntry(Rep->RepFaction1);
         uint32 current_reputation_rank1 = GetReputationMgr().GetRank(factionEntry1);
         if (factionEntry1 && current_reputation_rank1 <= Rep->ReputationMaxCap1)
@@ -6866,10 +6827,6 @@ void Player::RewardReputation(Unit* victim, float rate)
     {
         int32 donerep2 = CalculateReputationGain(victim->getLevel(), Rep->RepValue2, Rep->RepFaction2, false);
         donerep2 = int32(donerep2*(rate + favored_rep_mult));
-
-        if (recruitAFriend)
-            donerep2 = int32(donerep2 * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
-
         FactionEntry const* factionEntry2 = sFactionStore.LookupEntry(Rep->RepFaction2);
         uint32 current_reputation_rank2 = GetReputationMgr().GetRank(factionEntry2);
         if (factionEntry2 && current_reputation_rank2 <= Rep->ReputationMaxCap2)
@@ -6880,8 +6837,6 @@ void Player::RewardReputation(Unit* victim, float rate)
 //Calculate how many reputation points player gain with the quest
 void Player::RewardReputation(Quest const* quest)
 {
-    bool recruitAFriend = GetsRecruitAFriendBonus(false);
-
     // quest reputation reward/loss
     for (uint8 i = 0; i < QUEST_REPUTATIONS_COUNT; ++i)
     {
@@ -6890,10 +6845,6 @@ void Player::RewardReputation(Quest const* quest)
         if (quest->RewardFactionValueIdOverride[i])
         {
             int32 rep = CalculateReputationGain(GetQuestLevel(quest), quest->RewardFactionValueIdOverride[i]/100, quest->RewardFactionId[i], true, true);
-
-            if (recruitAFriend)
-                rep = int32(rep * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
-
             if (FactionEntry const* factionEntry = sFactionStore.LookupEntry(quest->RewardFactionId[i]))
                 GetReputationMgr().ModifyReputation(factionEntry, rep);
         }
@@ -6910,10 +6861,6 @@ void Player::RewardReputation(Quest const* quest)
                     continue;
 
                 repPoints = CalculateReputationGain(GetQuestLevel(quest), repPoints, quest->RewardFactionId[i], true);
-
-                if (recruitAFriend)
-                    repPoints = int32(repPoints * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
-
                 if (const FactionEntry* factionEntry = sFactionStore.LookupEntry(quest->RewardFactionId[i]))
                     GetReputationMgr().ModifyReputation(factionEntry, repPoints);
             }
@@ -7481,9 +7428,6 @@ void Player::_ApplyItemMods(Item* item, uint8 slot, bool apply)
     sLog->outDetail("applying mods for item %u ", item->GetGUIDLow());
 
     uint8 attacktype = Player::GetAttackBySlot(slot);
-
-    if (proto->Socket[0].Color)                              //only (un)equipping of items with sockets can influence metagems, so no need to waste time with normal items
-        CorrectMetaGemEnchants(slot, apply);
 
     if (attacktype < MAX_ATTACK)
         _ApplyWeaponDependentAuraMods(item, WeaponAttackType(attacktype), apply);
@@ -8594,22 +8538,11 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
             item->m_lootGenerated = true;
             loot->clear();
 
-            switch (loot_type)
-            {
-                case LOOT_DISENCHANTING:
-                    loot->FillLoot(item->GetTemplate()->DisenchantID, LootTemplates_Disenchant, this, true);
-                    break;
-                case LOOT_PROSPECTING:
-                    loot->FillLoot(item->GetEntry(), LootTemplates_Prospecting, this, true);
-                    break;
-                case LOOT_MILLING:
-                    loot->FillLoot(item->GetEntry(), LootTemplates_Milling, this, true);
-                    break;
-                default:
-                    loot->generateMoneyLoot(item->GetTemplate()->MinMoneyLoot, item->GetTemplate()->MaxMoneyLoot);
-                    loot->FillLoot(item->GetEntry(), LootTemplates_Item, this, true, loot->gold != 0);
-                    break;
-            }
+            if (loot_type == LOOT_DISENCHANTING)
+                loot->FillLoot(item->GetTemplate()->DisenchantID, LootTemplates_Disenchant, this, true);
+            else
+                loot->generateMoneyLoot(item->GetTemplate()->MinMoneyLoot, item->GetTemplate()->MaxMoneyLoot);
+                loot->FillLoot(item->GetEntry(), LootTemplates_Item, this, true, loot->gold != 0);
         }
     }
     else if (IS_CORPSE_GUID(guid))                          // remove insignia
@@ -9468,12 +9401,6 @@ uint32 Player::GetItemCount(uint32 item, bool inBankAlso, Item* skipItem) const
         if (Bag* pBag = GetBagByPos(i))
             count += pBag->GetItemCount(item, skipItem);
 
-    if (skipItem && skipItem->GetTemplate()->GemProperties)
-        for (uint8 i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_ITEM_END; ++i)
-            if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-                if (pItem != skipItem && pItem->GetTemplate()->Socket[0].Color)
-                    count += pItem->GetGemCountWithID(item);
-
     if (inBankAlso)
     {
         // checking every item from 39 to 74 (including bank bags)
@@ -9485,12 +9412,6 @@ uint32 Player::GetItemCount(uint32 item, bool inBankAlso, Item* skipItem) const
         for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; ++i)
             if (Bag* pBag = GetBagByPos(i))
                 count += pBag->GetItemCount(item, skipItem);
-
-        if (skipItem && skipItem->GetTemplate()->GemProperties)
-            for (uint8 i = BANK_SLOT_ITEM_START; i < BANK_SLOT_ITEM_END; ++i)
-                if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-                    if (pItem != skipItem && pItem->GetTemplate()->Socket[0].Color)
-                        count += pItem->GetGemCountWithID(item);
     }
 
     return count;
@@ -9819,7 +9740,7 @@ bool Player::HasItemCount(uint32 item, uint32 count, bool inBankAlso) const
     return false;
 }
 
-bool Player::HasItemOrGemWithIdEquipped(uint32 item, uint32 count, uint8 except_slot) const
+bool Player::HasItemWithIdEquipped(uint32 item, uint32 count, uint8 except_slot) const
 {
     uint32 tempcount = 0;
     for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
@@ -9836,28 +9757,10 @@ bool Player::HasItemOrGemWithIdEquipped(uint32 item, uint32 count, uint8 except_
         }
     }
 
-    ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(item);
-    if (pProto && pProto->GemProperties)
-    {
-        for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
-        {
-            if (i == except_slot)
-                continue;
-
-            Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i);
-            if (pItem && pItem->GetTemplate()->Socket[0].Color)
-            {
-                tempcount += pItem->GetGemCountWithID(item);
-                if (tempcount >= count)
-                    return true;
-            }
-        }
-    }
-
     return false;
 }
 
-bool Player::HasItemOrGemWithLimitCategoryEquipped(uint32 limitCategory, uint32 count, uint8 except_slot) const
+bool Player::HasItemWithLimitCategoryEquipped(uint32 limitCategory, uint32 count, uint8 except_slot) const
 {
     uint32 tempcount = 0;
     for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
@@ -9876,13 +9779,6 @@ bool Player::HasItemOrGemWithLimitCategoryEquipped(uint32 limitCategory, uint32 
         if (pProto->ItemLimitCategory == limitCategory)
         {
             tempcount += pItem->GetCount();
-            if (tempcount >= count)
-                return true;
-        }
-
-        if (pProto->Socket[0].Color || pItem->GetEnchantmentId(PRISMATIC_ENCHANTMENT_SLOT))
-        {
-            tempcount += pItem->GetGemCountWithLimitCategory(limitCategory);
             if (tempcount >= count)
                 return true;
         }
@@ -12733,7 +12629,6 @@ void Player::SendEquipError(InventoryResult msg, Item* pItem, Item* pItem2, uint
                 break;
             }
             case EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED:
-            case EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_SOCKETED_EXCEEDED:
             case EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_EQUIPPED_EXCEEDED:
             {
                 ItemTemplate const* proto = pItem ? pItem->GetTemplate() : sObjectMgr->GetItemTemplate(itemid);
@@ -12941,25 +12836,11 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
     if (!pEnchant)
         return;
 
-    if (!ignore_condition && pEnchant->EnchantmentCondition && !EnchantmentFitsRequirements(pEnchant->EnchantmentCondition, -1))
-        return;
-
     if (pEnchant->requiredLevel > getLevel())
         return;
 
     if (pEnchant->requiredSkill > 0 && pEnchant->requiredSkillValue > GetSkillValue(pEnchant->requiredSkill))
         return;
-
-    // If we're dealing with a gem inside a prismatic socket we need to check the prismatic socket requirements
-    // rather than the gem requirements itself. If the socket has no color it is a prismatic socket.
-    if ((slot == SOCK_ENCHANTMENT_SLOT || slot == SOCK_ENCHANTMENT_SLOT_2 || slot == SOCK_ENCHANTMENT_SLOT_3)
-        && !item->GetTemplate()->Socket[slot-SOCK_ENCHANTMENT_SLOT].Color)
-    {
-        // Check if the requirements for the prismatic socket are met before applying the gem stats
-         SpellItemEnchantmentEntry const* pPrismaticEnchant = sSpellItemEnchantmentStore.LookupEntry(item->GetEnchantmentId(PRISMATIC_ENCHANTMENT_SLOT));
-         if (!pPrismaticEnchant || (pPrismaticEnchant->requiredSkill > 0 && pPrismaticEnchant->requiredSkillValue > GetSkillValue(pPrismaticEnchant->requiredSkill)))
-             return;
-    }
 
     if (!item->IsBroken())
     {
@@ -13309,22 +13190,6 @@ void Player::UpdateSkillEnchantments(uint16 skill_id, uint16 curr_value, uint16 
                         ApplyEnchantment(m_items[i], EnchantmentSlot(slot), true);
                     else if (new_value < Enchant->requiredSkillValue && curr_value >= Enchant->requiredSkillValue)
                         ApplyEnchantment(m_items[i], EnchantmentSlot(slot), false);
-                }
-
-                // If we're dealing with a gem inside a prismatic socket we need to check the prismatic socket requirements
-                // rather than the gem requirements itself. If the socket has no color it is a prismatic socket.
-                if ((slot == SOCK_ENCHANTMENT_SLOT || slot == SOCK_ENCHANTMENT_SLOT_2 || slot == SOCK_ENCHANTMENT_SLOT_3)
-                    && !m_items[i]->GetTemplate()->Socket[slot-SOCK_ENCHANTMENT_SLOT].Color)
-                {
-                    SpellItemEnchantmentEntry const* pPrismaticEnchant = sSpellItemEnchantmentStore.LookupEntry(m_items[i]->GetEnchantmentId(PRISMATIC_ENCHANTMENT_SLOT));
-
-                    if (pPrismaticEnchant && pPrismaticEnchant->requiredSkill == skill_id)
-                    {
-                        if (curr_value < pPrismaticEnchant->requiredSkillValue && new_value >= pPrismaticEnchant->requiredSkillValue)
-                            ApplyEnchantment(m_items[i], EnchantmentSlot(slot), true);
-                        else if (new_value < pPrismaticEnchant->requiredSkillValue && curr_value >= pPrismaticEnchant->requiredSkillValue)
-                            ApplyEnchantment(m_items[i], EnchantmentSlot(slot), false);
-                    }
                 }
             }
         }
@@ -16361,18 +16226,8 @@ bool Player::LoadFromDB(uint32 guid, SQLQueryHolder *holder)
         }
     }
 
-    // RaF stuff.
-    m_grantableLevels = fields[66].GetUInt8();
-    if (GetSession()->IsARecruiter() || (GetSession()->GetRecruiterId() != 0))
-        SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_REFER_A_FRIEND);
-
-    if (m_grantableLevels > 0)
-        SetByteValue(PLAYER_FIELD_BYTES, 1, 0x01);
-
     _LoadDeclinedNames(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOADDECLINEDNAMES));
-
     _LoadEquipmentSets(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOADEQUIPMENTSETS));
-
     return true;
 }
 
@@ -17681,7 +17536,7 @@ void Player::SaveToDB(bool create /*=false*/)
 
         stmt->setString(index++, ss.str());
         stmt->setUInt8(index++, GetByteValue(PLAYER_FIELD_BYTES, 2));
-        stmt->setUInt32(index++, m_grantableLevels);
+        //stmt->setUInt32(index++, m_grantableLevels); // TrinityZero removal: RAF
     }
     else
     {
@@ -17786,7 +17641,7 @@ void Player::SaveToDB(bool create /*=false*/)
 
         stmt->setString(index++, ss.str());
         stmt->setUInt8(index++, GetByteValue(PLAYER_FIELD_BYTES, 2));
-        stmt->setUInt32(index++, m_grantableLevels);
+        //stmt->setUInt32(index++, m_grantableLevels); // TrinityZero removal: RAF
 
         stmt->setUInt8(index++, IsInWorld() ? 1 : 0);
         // Index
@@ -19379,12 +19234,10 @@ void Player::SetRestBonus (float rest_bonus_new)
         m_rest_bonus = rest_bonus_new;
 
     // update data for client
-    if (GetSession()->IsARecruiter() || (GetSession()->GetRecruiterId() != 0))
-        SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_RAF_LINKED);
-    else if (m_rest_bonus > 10)
+    if (m_rest_bonus > 10)
         SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_RESTED);              // Set Reststate = Rested
-    else if (m_rest_bonus <= 1)
-        SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_NOT_RAF_LINKED);              // Set Reststate = Normal
+    //else if (m_rest_bonus <= 1)
+    //    SetByteValue(PLAYER_BYTES_2, 3, REST_STATE_NOT_RAF_LINKED);              // Set Reststate = Normal
 
     //RestTickUpdate
     SetUInt32Value(PLAYER_REST_STATE_EXPERIENCE, uint32(m_rest_bonus));
@@ -20179,166 +20032,6 @@ void Player::UpdatePotionCooldown(Spell* spell)
         SendCooldownEvent(spell->m_spellInfo, m_lastPotionId, spell);
 
     m_lastPotionId = 0;
-}
-
-                                                           //slot to be excluded while counting
-bool Player::EnchantmentFitsRequirements(uint32 enchantmentcondition, int8 slot)
-{
-    if (!enchantmentcondition)
-        return true;
-
-    SpellItemEnchantmentConditionEntry const* Condition = sSpellItemEnchantmentConditionStore.LookupEntry(enchantmentcondition);
-
-    if (!Condition)
-        return true;
-
-    uint8 curcount[4] = {0, 0, 0, 0};
-
-    //counting current equipped gem colors
-    for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
-    {
-        if (i == slot)
-            continue;
-        Item* pItem2 = GetItemByPos(INVENTORY_SLOT_BAG_0, i);
-        if (pItem2 && !pItem2->IsBroken() && pItem2->GetTemplate()->Socket[0].Color)
-        {
-            for (uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT+3; ++enchant_slot)
-            {
-                uint32 enchant_id = pItem2->GetEnchantmentId(EnchantmentSlot(enchant_slot));
-                if (!enchant_id)
-                    continue;
-
-                SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
-                if (!enchantEntry)
-                    continue;
-
-                uint32 gemid = enchantEntry->GemID;
-                if (!gemid)
-                    continue;
-
-                ItemTemplate const* gemProto = sObjectMgr->GetItemTemplate(gemid);
-                if (!gemProto)
-                    continue;
-
-                GemPropertiesEntry const* gemProperty = sGemPropertiesStore.LookupEntry(gemProto->GemProperties);
-                if (!gemProperty)
-                    continue;
-
-                uint8 GemColor = gemProperty->color;
-
-                for (uint8 b = 0, tmpcolormask = 1; b < 4; b++, tmpcolormask <<= 1)
-                {
-                    if (tmpcolormask & GemColor)
-                        ++curcount[b];
-                }
-            }
-        }
-    }
-
-    bool activate = true;
-
-    for (uint8 i = 0; i < 5; i++)
-    {
-        if (!Condition->Color[i])
-            continue;
-
-        uint32 _cur_gem = curcount[Condition->Color[i] - 1];
-
-        // if have <CompareColor> use them as count, else use <value> from Condition
-        uint32 _cmp_gem = Condition->CompareColor[i] ? curcount[Condition->CompareColor[i] - 1]: Condition->Value[i];
-
-        switch (Condition->Comparator[i])
-        {
-            case 2:                                         // requires less <color> than (<value> || <comparecolor>) gems
-                activate &= (_cur_gem < _cmp_gem) ? true : false;
-                break;
-            case 3:                                         // requires more <color> than (<value> || <comparecolor>) gems
-                activate &= (_cur_gem > _cmp_gem) ? true : false;
-                break;
-            case 5:                                         // requires at least <color> than (<value> || <comparecolor>) gems
-                activate &= (_cur_gem >= _cmp_gem) ? true : false;
-                break;
-        }
-    }
-
-    sLog->outDebug(LOG_FILTER_PLAYER_ITEMS, "Checking Condition %u, there are %u Meta Gems, %u Red Gems, %u Yellow Gems and %u Blue Gems, Activate:%s", enchantmentcondition, curcount[0], curcount[1], curcount[2], curcount[3], activate ? "yes" : "no");
-
-    return activate;
-}
-
-void Player::CorrectMetaGemEnchants(uint8 exceptslot, bool apply)
-{
-                                                            //cycle all equipped items
-    for (uint32 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
-    {
-        //enchants for the slot being socketed are handled by Player::ApplyItemMods
-        if (slot == exceptslot)
-            continue;
-
-        Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
-
-        if (!pItem || !pItem->GetTemplate()->Socket[0].Color)
-            continue;
-
-        for (uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT+3; ++enchant_slot)
-        {
-            uint32 enchant_id = pItem->GetEnchantmentId(EnchantmentSlot(enchant_slot));
-            if (!enchant_id)
-                continue;
-
-            SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
-            if (!enchantEntry)
-                continue;
-
-            uint32 condition = enchantEntry->EnchantmentCondition;
-            if (condition)
-            {
-                                                            //was enchant active with/without item?
-                bool wasactive = EnchantmentFitsRequirements(condition, apply ? exceptslot : -1);
-                                                            //should it now be?
-                if (wasactive ^ EnchantmentFitsRequirements(condition, apply ? -1 : exceptslot))
-                {
-                    // ignore item gem conditions
-                                                            //if state changed, (dis)apply enchant
-                    ApplyEnchantment(pItem, EnchantmentSlot(enchant_slot), !wasactive, true, true);
-                }
-            }
-        }
-    }
-}
-
-                                                            //if false -> then toggled off if was on| if true -> toggled on if was off AND meets requirements
-void Player::ToggleMetaGemsActive(uint8 exceptslot, bool apply)
-{
-    //cycle all equipped items
-    for (int slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
-    {
-        //enchants for the slot being socketed are handled by WorldSession::HandleSocketOpcode(WorldPacket& recv_data)
-        if (slot == exceptslot)
-            continue;
-
-        Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
-
-        if (!pItem || !pItem->GetTemplate()->Socket[0].Color)   //if item has no sockets or no item is equipped go to next item
-            continue;
-
-        //cycle all (gem)enchants
-        for (uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT+3; ++enchant_slot)
-        {
-            uint32 enchant_id = pItem->GetEnchantmentId(EnchantmentSlot(enchant_slot));
-            if (!enchant_id)                                 //if no enchant go to next enchant(slot)
-                continue;
-
-            SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
-            if (!enchantEntry)
-                continue;
-
-            //only metagems to be (de)activated, so only enchants with condition
-            uint32 condition = enchantEntry->EnchantmentCondition;
-            if (condition)
-                ApplyEnchantment(pItem, EnchantmentSlot(enchant_slot), apply);
-        }
-    }
 }
 
 void Player::SetBattlegroundEntryPoint()
@@ -21607,47 +21300,6 @@ bool Player::isHonorOrXPTarget(Unit* victim)
     return true;
 }
 
-bool Player::GetsRecruitAFriendBonus(bool forXP)
-{
-    bool recruitAFriend = false;
-    if (getLevel() <= sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL) || !forXP)
-    {
-        if (Group* group = GetGroup())
-        {
-            for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
-            {
-                Player* player = itr->getSource();
-                if (!player)
-                    continue;
-
-                if (!player->IsAtRecruitAFriendDistance(this))
-                    continue;                               // member (alive or dead) or his corpse at req. distance
-
-                if (forXP)
-                {
-                    // level must be allowed to get RaF bonus
-                    if (player->getLevel() > sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL))
-                        continue;
-
-                    // level difference must be small enough to get RaF bonus, UNLESS we are lower level
-                    if (player->getLevel() < getLevel())
-                        if (uint8(getLevel() - player->getLevel()) > sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL_DIFFERENCE))
-                            continue;
-                }
-
-                bool ARecruitedB = (player->GetSession()->GetRecruiterId() == GetSession()->GetAccountId());
-                bool BRecruitedA = (GetSession()->GetRecruiterId() == player->GetSession()->GetAccountId());
-                if (ARecruitedB || BRecruitedA)
-                {
-                    recruitAFriend = true;
-                    break;
-                }
-            }
-        }
-    }
-    return recruitAFriend;
-}
-
 void Player::RewardPlayerAndGroupAtKill(Unit* victim, bool isBattleGround)
 {
     KillRewarder(this, victim, isBattleGround).Reward();
@@ -21692,20 +21344,6 @@ bool Player::IsAtGroupRewardDistance(WorldObject const* pRewardSource) const
         return false;
 
     return pRewardSource->GetDistance(player) <= sWorld->getFloatConfig(CONFIG_GROUP_XP_DISTANCE);
-}
-
-bool Player::IsAtRecruitAFriendDistance(WorldObject const* pOther) const
-{
-    if (!pOther)
-        return false;
-    const WorldObject* player = GetCorpse();
-    if (!player || isAlive())
-        player = this;
-
-    if (player->GetMapId() != pOther->GetMapId() || player->GetInstanceId() != pOther->GetInstanceId())
-        return false;
-
-    return pOther->GetDistance(player) <= sWorld->getFloatConfig(CONFIG_MAX_RECRUIT_A_FRIEND_DISTANCE);
 }
 
 uint32 Player::GetBaseWeaponSkillValue (WeaponAttackType attType) const
@@ -22505,28 +22143,6 @@ InventoryResult Player::CanEquipUniqueItem(Item* pItem, uint8 eslot, uint32 limi
     if (InventoryResult res = CanEquipUniqueItem(pProto, eslot, limit_count))
         return res;
 
-    // check unique-equipped on gems
-    for (uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT+3; ++enchant_slot)
-    {
-        uint32 enchant_id = pItem->GetEnchantmentId(EnchantmentSlot(enchant_slot));
-        if (!enchant_id)
-            continue;
-        SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
-        if (!enchantEntry)
-            continue;
-
-        ItemTemplate const* pGem = sObjectMgr->GetItemTemplate(enchantEntry->GemID);
-        if (!pGem)
-            continue;
-
-        // include for check equip another gems with same limit category for not equipped item (and then not counted)
-        uint32 gem_limit_count = !pItem->IsEquipped() && pGem->ItemLimitCategory
-            ? pItem->GetGemCountWithLimitCategory(pGem->ItemLimitCategory) : 1;
-
-        if (InventoryResult res = CanEquipUniqueItem(pGem, eslot, gem_limit_count))
-            return res;
-    }
-
     return EQUIP_ERR_OK;
 }
 
@@ -22536,7 +22152,7 @@ InventoryResult Player::CanEquipUniqueItem(ItemTemplate const* itemProto, uint8 
     if (itemProto->Flags & ITEM_PROTO_FLAG_UNIQUE_EQUIPPED)
     {
         // there is an equip limit on this item
-        if (HasItemOrGemWithIdEquipped(itemProto->ItemId, 1, except_slot))
+        if (HasItemWithIdEquipped(itemProto->ItemId, 1, except_slot))
             return EQUIP_ERR_ITEM_UNIQUE_EQUIPABLE;
     }
 
@@ -22551,10 +22167,6 @@ InventoryResult Player::CanEquipUniqueItem(ItemTemplate const* itemProto, uint8 
 
         if (limit_count > limitEntry->maxCount)
             return EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_EQUIPPED_EXCEEDED;
-
-        // there is an equip limit on this item
-        if (HasItemOrGemWithLimitCategoryEquipped(itemProto->ItemLimitCategory, limitEntry->maxCount - limit_count + 1, except_slot))
-            return EQUIP_ERR_ITEM_MAX_COUNT_EQUIPPED_SOCKETED;
     }
 
     return EQUIP_ERR_OK;

@@ -782,29 +782,9 @@ enum CharDeleteMethod
                                                  // the name gets freed up and appears as deleted ingame
 };
 
-enum ReferAFriendError
-{
-    ERR_REFER_A_FRIEND_NONE                          = 0x00,
-    ERR_REFER_A_FRIEND_NOT_REFERRED_BY               = 0x01,
-    ERR_REFER_A_FRIEND_TARGET_TOO_HIGH               = 0x02,
-    ERR_REFER_A_FRIEND_INSUFFICIENT_GRANTABLE_LEVELS = 0x03,
-    ERR_REFER_A_FRIEND_TOO_FAR                       = 0x04,
-    ERR_REFER_A_FRIEND_DIFFERENT_FACTION             = 0x05,
-    ERR_REFER_A_FRIEND_NOT_NOW                       = 0x06,
-    ERR_REFER_A_FRIEND_GRANT_LEVEL_MAX_I             = 0x07,
-    ERR_REFER_A_FRIEND_NO_TARGET                     = 0x08,
-    ERR_REFER_A_FRIEND_NOT_IN_GROUP                  = 0x09,
-    ERR_REFER_A_FRIEND_SUMMON_LEVEL_MAX_I            = 0x0A,
-    ERR_REFER_A_FRIEND_SUMMON_COOLDOWN               = 0x0B,
-    ERR_REFER_A_FRIEND_INSUF_EXPAN_LVL               = 0x0C,
-    ERR_REFER_A_FRIEND_SUMMON_OFFLINE_S              = 0x0D
-};
-
 enum PlayerRestState
 {
     REST_STATE_RESTED                                = 0x01,
-    REST_STATE_NOT_RAF_LINKED                        = 0x02,
-    REST_STATE_RAF_LINKED                            = 0x06
 };
 
 class PlayerTaxi
@@ -1138,8 +1118,8 @@ class Player : public Unit, public GridObject<Player>
         bool HasItemCount(uint32 item, uint32 count, bool inBankAlso = false) const;
         bool HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item const* ignoreItem = NULL);
         bool CanNoReagentCast(SpellInfo const* spellInfo) const;
-        bool HasItemOrGemWithIdEquipped(uint32 item, uint32 count, uint8 except_slot = NULL_SLOT) const;
-        bool HasItemOrGemWithLimitCategoryEquipped(uint32 limitCategory, uint32 count, uint8 except_slot = NULL_SLOT) const;
+        bool HasItemWithIdEquipped(uint32 item, uint32 count, uint8 except_slot = NULL_SLOT) const;
+        bool HasItemWithLimitCategoryEquipped(uint32 limitCategory, uint32 count, uint8 except_slot = NULL_SLOT) const;
         InventoryResult CanTakeMoreSimilarItems(Item* pItem) const { return CanTakeMoreSimilarItems(pItem->GetEntry(), pItem->GetCount(), pItem); }
         InventoryResult CanTakeMoreSimilarItems(uint32 entry, uint32 count) const { return CanTakeMoreSimilarItems(entry, count, NULL); }
         InventoryResult CanStoreNewItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, uint32 item, uint32 count, uint32* no_space_count = NULL) const
@@ -1773,7 +1753,7 @@ class Player : public Unit, public GridObject<Player>
 
         void BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) const;
         void DestroyForPlayer(Player* target, bool onDeath = false) const;
-        void SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, bool recruitAFriend = false, float group_rate=1.0f);
+        void SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, float group_rate=1.0f);
 
         // notifiers
         void SendAttackSwingCantAttack();
@@ -1871,14 +1851,9 @@ class Player : public Unit, public GridObject<Player>
         void InitDisplayIds();
 
         bool IsAtGroupRewardDistance(WorldObject const* pRewardSource) const;
-        bool IsAtRecruitAFriendDistance(WorldObject const* pOther) const;
         void RewardPlayerAndGroupAtKill(Unit* victim, bool isBattleGround);
         void RewardPlayerAndGroupAtEvent(uint32 creature_id, WorldObject* pRewardSource);
         bool isHonorOrXPTarget(Unit* victim);
-
-        bool GetsRecruitAFriendBonus(bool forXP);
-        uint8 GetGrantableLevels() { return m_grantableLevels; }
-        void SetGrantableLevels(uint8 val) { m_grantableLevels = val; }
 
         ReputationMgr&       GetReputationMgr()       { return m_reputationMgr; }
         ReputationMgr const& GetReputationMgr() const { return m_reputationMgr; }
@@ -1943,9 +1918,6 @@ class Player : public Unit, public GridObject<Player>
         void _ApplyItemBonuses(ItemTemplate const* proto, uint8 slot, bool apply, bool only_level_scale = false);
         void _ApplyWeaponDamage(uint8 slot, ItemTemplate const* proto, ScalingStatValuesEntry const* ssv, bool apply);
         void _ApplyAmmoBonuses();
-        bool EnchantmentFitsRequirements(uint32 enchantmentcondition, int8 slot);
-        void ToggleMetaGemsActive(uint8 exceptslot, bool apply);
-        void CorrectMetaGemEnchants(uint8 slot, bool apply);
         void InitDataForForm(bool reapplyMods = false);
 
         void ApplyItemEquipSpell(Item* item, bool apply, bool form_change = false);
@@ -2592,8 +2564,6 @@ class Player : public Unit, public GridObject<Player>
         bool CanAlwaysSee(WorldObject const* obj) const;
 
         bool IsAlwaysDetectableFor(WorldObject const* seer) const;
-
-        uint8 m_grantableLevels;
 
     private:
         // internal common parts for CanStore/StoreItem functions

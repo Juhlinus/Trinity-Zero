@@ -111,13 +111,11 @@ public:
             { "locales_quest",                SEC_ADMINISTRATOR, true,  &HandleReloadLocalesQuestCommand,               "", NULL },
             { "mail_level_reward",            SEC_ADMINISTRATOR, true,  &HandleReloadMailLevelRewardCommand,            "", NULL },
             { "mail_loot_template",           SEC_ADMINISTRATOR, true,  &HandleReloadLootTemplatesMailCommand,          "", NULL },
-            { "milling_loot_template",        SEC_ADMINISTRATOR, true,  &HandleReloadLootTemplatesMillingCommand,       "", NULL },
             { "npc_trainer",                  SEC_ADMINISTRATOR, true,  &HandleReloadNpcTrainerCommand,                 "", NULL },
             { "npc_vendor",                   SEC_ADMINISTRATOR, true,  &HandleReloadNpcVendorCommand,                  "", NULL },
             { "page_text",                    SEC_ADMINISTRATOR, true,  &HandleReloadPageTextsCommand,                  "", NULL },
             { "pickpocketing_loot_template",  SEC_ADMINISTRATOR, true,  &HandleReloadLootTemplatesPickpocketingCommand, "", NULL},
             { "points_of_interest",           SEC_ADMINISTRATOR, true,  &HandleReloadPointsOfInterestCommand,           "", NULL },
-            { "prospecting_loot_template",    SEC_ADMINISTRATOR, true,  &HandleReloadLootTemplatesProspectingCommand,   "", NULL },
             { "quest_end_scripts",            SEC_ADMINISTRATOR, true,  &HandleReloadQuestEndScriptsCommand,            "", NULL },
             { "quest_poi",                    SEC_ADMINISTRATOR, true,  &HandleReloadQuestPOICommand,                   "", NULL },
             { "quest_start_scripts",          SEC_ADMINISTRATOR, true,  &HandleReloadQuestStartScriptsCommand,          "", NULL },
@@ -605,32 +603,12 @@ public:
         return true;
     }
 
-    static bool HandleReloadLootTemplatesMillingCommand(ChatHandler* handler, const char* /*args*/)
-    {
-        sLog->outString("Re-Loading Loot Tables... (`milling_loot_template`)");
-        LoadLootTemplates_Milling();
-        LootTemplates_Milling.CheckLootRefs();
-        handler->SendGlobalGMSysMessage("DB table `milling_loot_template` reloaded.");
-        sConditionMgr->LoadConditions(true);
-        return true;
-    }
-
     static bool HandleReloadLootTemplatesPickpocketingCommand(ChatHandler* handler, const char* /*args*/)
     {
         sLog->outString("Re-Loading Loot Tables... (`pickpocketing_loot_template`)");
         LoadLootTemplates_Pickpocketing();
         LootTemplates_Pickpocketing.CheckLootRefs();
         handler->SendGlobalGMSysMessage("DB table `pickpocketing_loot_template` reloaded.");
-        sConditionMgr->LoadConditions(true);
-        return true;
-    }
-
-    static bool HandleReloadLootTemplatesProspectingCommand(ChatHandler* handler, const char* /*args*/)
-    {
-        sLog->outString("Re-Loading Loot Tables... (`prospecting_loot_template`)");
-        LoadLootTemplates_Prospecting();
-        LootTemplates_Prospecting.CheckLootRefs();
-        handler->SendGlobalGMSysMessage("DB table `prospecting_loot_template` reloaded.");
         sConditionMgr->LoadConditions(true);
         return true;
     }

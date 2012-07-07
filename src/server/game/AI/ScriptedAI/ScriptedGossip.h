@@ -32,8 +32,8 @@ enum eTradeskill
     TRADESKILL_MINING                   = 11,
     TRADESKILL_FISHING                  = 12,
     TRADESKILL_SKINNING                 = 13,
-    TRADESKILL_JEWLCRAFTING             = 14,
-    TRADESKILL_INSCRIPTION              = 15,
+    //TRADESKILL_JEWLCRAFTING             = 14,
+    //TRADESKILL_INSCRIPTION              = 15,
 
     TRADESKILL_LEVEL_NONE               = 0,
     TRADESKILL_LEVEL_APPRENTICE         = 1,

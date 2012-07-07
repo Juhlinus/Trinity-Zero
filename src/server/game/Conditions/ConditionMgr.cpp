@@ -66,7 +66,7 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo)
         case CONDITION_ITEM_EQUIPPED:
         {
             if (Player* player = object->ToPlayer())
-                condMeets = player->HasItemOrGemWithIdEquipped(ConditionValue1, 1);
+                condMeets = player->HasItemWithIdEquipped(ConditionValue1, 1);
             break;
         }
         case CONDITION_ZONEID:
@@ -661,12 +661,12 @@ void ConditionMgr::LoadConditions(bool isReload)
         LootTemplates_Gameobject.ResetConditions();
         LootTemplates_Item.ResetConditions();
         LootTemplates_Mail.ResetConditions();
-        LootTemplates_Milling.ResetConditions();
+        //LootTemplates_Milling.ResetConditions();
         LootTemplates_Pickpocketing.ResetConditions();
         LootTemplates_Reference.ResetConditions();
         LootTemplates_Skinning.ResetConditions();
         LootTemplates_Disenchant.ResetConditions();
-        LootTemplates_Prospecting.ResetConditions();
+        //LootTemplates_Prospecting.ResetConditions();
         LootTemplates_Spell.ResetConditions();
 
         sLog->outString("Re-Loading `gossip_menu` Table for Conditions!");
@@ -808,14 +808,14 @@ void ConditionMgr::LoadConditions(bool isReload)
                 case CONDITION_SOURCE_TYPE_MAIL_LOOT_TEMPLATE:
                     valid = addToLootTemplate(cond, LootTemplates_Mail.GetLootForConditionFill(cond->SourceGroup));
                     break;
-                case CONDITION_SOURCE_TYPE_MILLING_LOOT_TEMPLATE:
+                /*case CONDITION_SOURCE_TYPE_MILLING_LOOT_TEMPLATE:
                     valid = addToLootTemplate(cond, LootTemplates_Milling.GetLootForConditionFill(cond->SourceGroup));
-                    break;
-                case CONDITION_SOURCE_TYPE_PICKPOCKETING_LOOT_TEMPLATE:
-                    valid = addToLootTemplate(cond, LootTemplates_Pickpocketing.GetLootForConditionFill(cond->SourceGroup));
                     break;
                 case CONDITION_SOURCE_TYPE_PROSPECTING_LOOT_TEMPLATE:
                     valid = addToLootTemplate(cond, LootTemplates_Prospecting.GetLootForConditionFill(cond->SourceGroup));
+                    break;*/
+                case CONDITION_SOURCE_TYPE_PICKPOCKETING_LOOT_TEMPLATE:
+                    valid = addToLootTemplate(cond, LootTemplates_Pickpocketing.GetLootForConditionFill(cond->SourceGroup));
                     break;
                 case CONDITION_SOURCE_TYPE_REFERENCE_LOOT_TEMPLATE:
                     valid = addToLootTemplate(cond, LootTemplates_Reference.GetLootForConditionFill(cond->SourceGroup));
@@ -1132,23 +1132,6 @@ bool ConditionMgr::isSourceTypeValid(Condition* cond)
             }
             break;
         }
-        case CONDITION_SOURCE_TYPE_MILLING_LOOT_TEMPLATE:
-        {
-            if (!LootTemplates_Milling.HaveLootFor(cond->SourceGroup))
-            {
-                sLog->outErrorDb("SourceGroup %u in `condition` table, does not exist in `milling_loot_template`, ignoring.", cond->SourceGroup);
-                return false;
-            }
-
-            LootTemplate* loot = LootTemplates_Milling.GetLootForConditionFill(cond->SourceGroup);
-            ItemTemplate const* pItemProto = sObjectMgr->GetItemTemplate(cond->SourceEntry);
-            if (!pItemProto && !loot->isReference(cond->SourceEntry))
-            {
-                sLog->outErrorDb("SourceType %u, SourceEntry %u in `condition` table, does not exist in `item_template`, ignoring.", cond->SourceType, cond->SourceEntry);
-                return false;
-            }
-            break;
-        }
         case CONDITION_SOURCE_TYPE_PICKPOCKETING_LOOT_TEMPLATE:
         {
             if (!LootTemplates_Pickpocketing.HaveLootFor(cond->SourceGroup))
@@ -1158,23 +1141,6 @@ bool ConditionMgr::isSourceTypeValid(Condition* cond)
             }
 
             LootTemplate* loot = LootTemplates_Pickpocketing.GetLootForConditionFill(cond->SourceGroup);
-            ItemTemplate const* pItemProto = sObjectMgr->GetItemTemplate(cond->SourceEntry);
-            if (!pItemProto && !loot->isReference(cond->SourceEntry))
-            {
-                sLog->outErrorDb("SourceType %u, SourceEntry %u in `condition` table, does not exist in `item_template`, ignoring.", cond->SourceType, cond->SourceEntry);
-                return false;
-            }
-            break;
-        }
-        case CONDITION_SOURCE_TYPE_PROSPECTING_LOOT_TEMPLATE:
-        {
-            if (!LootTemplates_Prospecting.HaveLootFor(cond->SourceGroup))
-            {
-                sLog->outErrorDb("SourceGroup %u in `condition` table, does not exist in `prospecting_loot_template`, ignoring.", cond->SourceGroup);
-                return false;
-            }
-
-            LootTemplate* loot = LootTemplates_Prospecting.GetLootForConditionFill(cond->SourceGroup);
             ItemTemplate const* pItemProto = sObjectMgr->GetItemTemplate(cond->SourceEntry);
             if (!pItemProto && !loot->isReference(cond->SourceEntry))
             {

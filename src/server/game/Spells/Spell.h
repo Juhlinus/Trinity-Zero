@@ -290,8 +290,6 @@ class Spell
         void EffectSkinning(SpellEffIndex effIndex);
         void EffectCharge(SpellEffIndex effIndex);
         void EffectChargeDest(SpellEffIndex effIndex);
-        void EffectProspecting(SpellEffIndex effIndex);
-        void EffectMilling(SpellEffIndex effIndex);
         void EffectRenamePet(SpellEffIndex effIndex);
         void EffectSendTaxi(SpellEffIndex effIndex);
         void EffectSummonCritter(SpellEffIndex effIndex);

@@ -205,7 +205,7 @@ class CharacterCreateInfo
 class WorldSession
 {
     public:
-        WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter);
+        WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale);
         ~WorldSession();
 
         bool PlayerLoading() const { return m_playerLoading; }
@@ -375,10 +375,6 @@ class WorldSession
         {
             return (m_timeOutTime <= 0 && !m_inQueue);
         }
-
-        // Recruit-A-Friend Handling
-        uint32 GetRecruiterId() const { return recruiterId; }
-        bool IsARecruiter() const { return isRecruiter; }
 
     public:                                                 // opcodes handlers
 
@@ -774,9 +770,6 @@ class WorldSession
         void HandleComplainOpcode(WorldPacket& recv_data);
         void HandleRequestPetInfoOpcode(WorldPacket& recv_data);
 
-        // Socket gem
-        void HandleSocketOpcode(WorldPacket& recv_data);
-
         void HandleCancelTempEnchantmentOpcode(WorldPacket& recv_data);
 
         void HandleItemRefundInfoRequest(WorldPacket& recv_data);
@@ -801,10 +794,6 @@ class WorldSession
         void HandleGuildBankBuyTab(WorldPacket& recv_data);
         void HandleQueryGuildBankTabText(WorldPacket& recv_data);
         void HandleSetGuildBankTabText(WorldPacket& recv_data);
-
-        // Refer-a-Friend
-        void HandleGrantLevel(WorldPacket& recv_data);
-        void HandleAcceptGrantLevel(WorldPacket& recv_data);
 
         // Calendar
         void HandleCalendarGetCalendar(WorldPacket& recvData);
@@ -909,8 +898,6 @@ class WorldSession
         uint32 m_Tutorials[MAX_ACCOUNT_TUTORIAL_VALUES];
         bool   m_TutorialsChanged;
         AddonsList m_addonsList;
-        uint32 recruiterId;
-        bool isRecruiter;
         ACE_Based::LockedQueue<WorldPacket*, ACE_Thread_Mutex> _recvQueue;
         time_t timeLastWhoCommand;
 };

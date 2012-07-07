@@ -1554,22 +1554,12 @@ void Spell::SelectImplicitTrajTargets()
 
 void Spell::SelectEffectTypeImplicitTargets(uint8 effIndex)
 {
-    // special case for SPELL_EFFECT_SUMMON_RAF_FRIEND and SPELL_EFFECT_SUMMON_PLAYER
+    // special case for SPELL_EFFECT_SUMMON_PLAYER
     // TODO: this is a workaround - target shouldn't be stored in target map for those spells
-    switch (m_spellInfo->Effects[effIndex].Effect)
-    {
-        case SPELL_EFFECT_SUMMON_RAF_FRIEND:
-        case SPELL_EFFECT_SUMMON_PLAYER:
-            if (m_caster->GetTypeId() == TYPEID_PLAYER && m_caster->ToPlayer()->GetSelection())
-            {
-                Player* target = ObjectAccessor::FindPlayer(m_caster->ToPlayer()->GetSelection());
-                if (target)
-                    AddUnitTarget(target, 1 << effIndex, false);
-            }
-            return;
-        default:
-            break;
-    }
+    if (m_spellInfo->Effects[effIndex].Effect == SPELL_EFFECT_SUMMON_PLAYER)
+        if (m_caster->GetTypeId() == TYPEID_PLAYER && m_caster->ToPlayer()->GetSelection())
+            if (Player* target = ObjectAccessor::FindPlayer(m_caster->ToPlayer()->GetSelection()))
+                AddUnitTarget(target, 1 << effIndex, false);
 
     // select spell implicit targets based on effect type
     if (!m_spellInfo->Effects[effIndex].GetImplicitTargetType())
@@ -4802,7 +4792,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                     return SPELL_FAILED_BAD_TARGETS;
 
                 Player* target = ObjectAccessor::FindPlayer(m_caster->ToPlayer()->GetSelection());
-                if (!target || m_caster->ToPlayer() == target || (!target->IsInSameRaidWith(m_caster->ToPlayer()) && m_spellInfo->Id != 48955)) // refer-a-friend spell
+                if (!target || m_caster->ToPlayer() == target)
                     return SPELL_FAILED_BAD_TARGETS;
 
                 // check if our map is dungeon
@@ -4822,25 +4812,6 @@ SpellCastResult Spell::CheckCast(bool strict)
                     if (!target->Satisfy(sObjectMgr->GetAccessRequirement(mapId), mapId))
                         return SPELL_FAILED_BAD_TARGETS;
                 }
-                break;
-            }
-            // RETURN HERE
-            case SPELL_EFFECT_SUMMON_RAF_FRIEND:
-            {
-                if (m_caster->GetTypeId() != TYPEID_PLAYER)
-                    return SPELL_FAILED_BAD_TARGETS;
-
-                Player* playerCaster = m_caster->ToPlayer();
-                    //
-                if (!(playerCaster->GetSelection()))
-                    return SPELL_FAILED_BAD_TARGETS;
-
-                Player* target = ObjectAccessor::FindPlayer(playerCaster->GetSelection());
-
-                if (!target ||
-                    !(target->GetSession()->GetRecruiterId() == playerCaster->GetSession()->GetAccountId() || target->GetSession()->GetAccountId() == playerCaster->GetSession()->GetRecruiterId()))
-                    return SPELL_FAILED_BAD_TARGETS;
-
                 break;
             }
             case SPELL_EFFECT_LEAP:
@@ -5644,52 +5615,6 @@ SpellCastResult Spell::CheckItems()
                     return SPELL_FAILED_CANT_BE_DISENCHANTED;
                 if (!itemProto->DisenchantID)
                     return SPELL_FAILED_CANT_BE_DISENCHANTED;
-                break;
-            }
-            case SPELL_EFFECT_PROSPECTING:
-            {
-                if (!m_targets.GetItemTarget())
-                    return SPELL_FAILED_CANT_BE_PROSPECTED;
-                //ensure item is a prospectable ore
-                if (!(m_targets.GetItemTarget()->GetTemplate()->Flags & ITEM_PROTO_FLAG_PROSPECTABLE))
-                    return SPELL_FAILED_CANT_BE_PROSPECTED;
-                //prevent prospecting in trade slot
-                if (m_targets.GetItemTarget()->GetOwnerGUID() != m_caster->GetGUID())
-                    return SPELL_FAILED_CANT_BE_PROSPECTED;
-                //Check for enough skill in jewelcrafting
-                uint32 item_prospectingskilllevel = m_targets.GetItemTarget()->GetTemplate()->RequiredSkillRank;
-                if (item_prospectingskilllevel >p_caster->GetSkillValue(SKILL_JEWELCRAFTING))
-                    return SPELL_FAILED_LOW_CASTLEVEL;
-                //make sure the player has the required ores in inventory
-                if (m_targets.GetItemTarget()->GetCount() < 5)
-                    return SPELL_FAILED_NEED_MORE_ITEMS;
-
-                if (!LootTemplates_Prospecting.HaveLootFor(m_targets.GetItemTargetEntry()))
-                    return SPELL_FAILED_CANT_BE_PROSPECTED;
-
-                break;
-            }
-            case SPELL_EFFECT_MILLING:
-            {
-                if (!m_targets.GetItemTarget())
-                    return SPELL_FAILED_CANT_BE_MILLED;
-                //ensure item is a millable herb
-                if (!(m_targets.GetItemTarget()->GetTemplate()->Flags & ITEM_PROTO_FLAG_MILLABLE))
-                    return SPELL_FAILED_CANT_BE_MILLED;
-                //prevent milling in trade slot
-                if (m_targets.GetItemTarget()->GetOwnerGUID() != m_caster->GetGUID())
-                    return SPELL_FAILED_CANT_BE_MILLED;
-                //Check for enough skill in inscription
-                uint32 item_millingskilllevel = m_targets.GetItemTarget()->GetTemplate()->RequiredSkillRank;
-                if (item_millingskilllevel >p_caster->GetSkillValue(SKILL_INSCRIPTION))
-                    return SPELL_FAILED_LOW_CASTLEVEL;
-                //make sure the player has the required herbs in inventory
-                if (m_targets.GetItemTarget()->GetCount() < 5)
-                    return SPELL_FAILED_NEED_MORE_ITEMS;
-
-                if (!LootTemplates_Milling.HaveLootFor(m_targets.GetItemTargetEntry()))
-                    return SPELL_FAILED_CANT_BE_MILLED;
-
                 break;
             }
             case SPELL_EFFECT_WEAPON_DAMAGE:

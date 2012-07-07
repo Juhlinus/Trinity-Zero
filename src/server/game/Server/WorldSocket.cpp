@@ -850,7 +850,7 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     if (locale >= TOTAL_LOCALES)
         locale = LOCALE_enUS;
 
-    uint32 recruiter = fields[9].GetUInt32();
+    //uint32 recruiter = fields[9].GetUInt32(); //! TrinityZero removal
     std::string os = fields[10].GetString();
 
     // Checks gmlevel per Realm
@@ -929,17 +929,6 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
                 account.c_str(),
                 address.c_str());
 
-    // Check if this user is by any chance a recruiter
-    stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_RECRUITER);
-
-    stmt->setUInt32(0, id);
-
-    result = LoginDatabase.Query(stmt);
-
-    bool isRecruiter = false;
-    if (result)
-        isRecruiter = true;
-
     // Update the last_ip in the database
 
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LAST_IP);
@@ -950,7 +939,7 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     LoginDatabase.Execute(stmt);
 
     // NOTE ATM the socket is single-threaded, have this in mind ...
-    ACE_NEW_RETURN (m_Session, WorldSession (id, this, AccountTypes(security), mutetime, locale, recruiter, isRecruiter), -1);
+    ACE_NEW_RETURN (m_Session, WorldSession (id, this, AccountTypes(security), mutetime, locale), -1);
 
     m_Crypt.Init(&k);
 

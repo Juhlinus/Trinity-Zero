@@ -1020,7 +1020,6 @@ enum Opcodes
     CMSG_OPT_OUT_OF_LOOT                            = 0x408,
     CMSG_SET_GRANTABLE_LEVELS                       = 0x40B,
     CMSG_GRANT_LEVEL                                = 0x40C,
-    CMSG_REFER_A_FRIEND                             = 0x40D,
     CMSG_DECLINE_CHANNEL_INVITE                     = 0x40F,
     CMSG_GROUPACTION_THROTTLED                      = 0x410,
     SMSG_OVERRIDE_LIGHT                             = 0x411,
@@ -1038,10 +1037,10 @@ enum Opcodes
     SMSG_SEND_UNLEARN_SPELLS                        = 0x41D,
     SMSG_PROPOSE_LEVEL_GRANT                        = 0x41E,
     CMSG_ACCEPT_LEVEL_GRANT                         = 0x41F,
-    SMSG_REFER_A_FRIEND_FAILURE                     = 0x420,
     SMSG_SPLINE_MOVE_SET_FLYING                     = 0x421,
     SMSG_SPLINE_MOVE_UNSET_FLYING                   = 0x422,
-    SMSG_SUMMON_CANCEL                              = 0x423
+    SMSG_SUMMON_CANCEL                              = 0x423,
+    NUM_MSG_TYPES                                   = 0x424
 };
 /// Player state
 enum SessionStatus

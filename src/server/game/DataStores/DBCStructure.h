@@ -472,13 +472,6 @@ struct GameObjectDisplayInfoEntry
     //uint32  transport;  //18
 };
 
-struct GemPropertiesEntry
-{
-    uint32      ID;
-    uint32      spellitemenchantement;
-    uint32      color;
-};
-
 // All Gt* DBC store data for 100 levels, some by 100 per class/race
 #define GT_MAX_LEVEL    100
 // gtOCTClassCombatRatingScalar.dbc stores data for 32 ratings, look at MAX_COMBAT_RATING for real used amount
@@ -1171,7 +1164,7 @@ struct SpellItemEnchantmentEntry
     //uint32      descriptionFlags;                         // 30 name flags
     uint32      aura_id;                                    // 31       m_itemVisual
     uint32      slot;                                       // 32       m_flags
-    uint32      GemID;                                      // 33       m_src_itemID
+    //uint32      GemID;                                      // 33       m_src_itemID
     uint32      EnchantmentCondition;                       // 34       m_condition_id
     uint32      requiredSkill;                              // 35       m_requiredSkillID
     uint32      requiredSkillValue;                         // 36       m_requiredSkillRank
