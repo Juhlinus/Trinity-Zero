@@ -21,20 +21,35 @@
 
 #include "Common.h"
 #include "BigNumber.h"
-#include "RealmSocket.h"
+#include "Common.h"
+
+#include <string>
+#include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/asio.hpp>
+
+class SocketAcceptor;
+
+using boost::asio::ip::tcp;
 
 // Handle login commands
-class AuthSocket: public RealmSocket::Session
+class AuthSocket : public boost::enable_shared_from_this<AuthSocket>
 {
 public:
+    typedef boost::shared_ptr<AuthSocket> SessionPtr;
+
+    static SessionPtr create(boost::asio::io_service& io_service) { return SessionPtr(new AuthSocket(io_service)); }
+
+    tcp::socket& socket() { return _socket; }
     const static int s_BYTE_SIZE = 32;
 
-    AuthSocket(RealmSocket& socket);
-    virtual ~AuthSocket(void);
+    AuthSocket(boost::asio::io_service& io_service);
+    virtual ~AuthSocket();
 
-    virtual void OnRead(void);
-    virtual void OnAccept(void);
-    virtual void OnClose(void);
+    virtual void OnRead();
+    virtual void OnAccept();
+    virtual void OnClose();
 
     bool _HandleLogonChallenge();
     bool _HandleLogonProof();
@@ -52,9 +67,23 @@ public:
     FILE* pPatch;
     ACE_Thread_Mutex patcherLock;
 
+    // Boost wrapper functions
+    void handler(const boost::system::error_code& /*error*/, std::size_t /*bytes_transferred*/) { }
+    std::string getRemoteAddress() { return socket().remote_endpoint().address().to_string(); }
+    uint16 getRemotePort() { return socket().remote_endpoint().port(); }
+
+    void ReadPacket(char* data, size_t bytesToRead) { boost::asio::async_read(socket(), boost::asio::buffer(data, bytesToRead), boost::bind(&AuthSocket::handler, shared_from_this(), boost::asio::placeholders::error(), boost::asio::placeholders::bytes_transferred())); }
+    void ReadPacketSkip(size_t bytesToSkip)
+    {
+        char waste[bytesToSkip];
+        boost::asio::async_read(socket(), boost::asio::buffer(waste, bytesToSkip), boost::bind(&AuthSocket::handler, shared_from_this(), boost::asio::placeholders::error(), boost::asio::placeholders::bytes_transferred()));
+    }
+    void WritePacket(char* data, size_t bytesToWrite) { boost::asio::async_write(socket(), boost::asio::buffer(data, bytesToWrite), boost::bind(&AuthSocket::handler, shared_from_this(), boost::asio::placeholders::error(), boost::asio::placeholders::bytes_transferred())); }
+
+    void ShutdownSocket() { socket().close(); socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both); }
+
 private:
-    RealmSocket& socket_;
-    RealmSocket& socket(void) { return socket_; }
+    tcp::socket _socket;
 
     BigNumber N, s, g, v;
     BigNumber b, B;

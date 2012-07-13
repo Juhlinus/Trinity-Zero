@@ -23,6 +23,8 @@
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 
+#include <boost/asio.hpp>
+
 #include "Common.h"
 #include "Database/DatabaseEnv.h"
 #include "Configuration/Config.h"
@@ -31,7 +33,7 @@
 #include "Util.h"
 #include "SignalHandler.h"
 #include "RealmList.h"
-#include "RealmAcceptor.h"
+#include "SocketAcceptor.h"
 
 #ifndef _TRINITY_REALM_CONFIG
 # define _TRINITY_REALM_CONFIG  "authserver.conf"
@@ -105,14 +107,6 @@ extern int main(int argc, char **argv)
 
     sLog->outDetail("%s (Library: %s)", OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION));
 
-#if defined (ACE_HAS_EVENT_POLL) || defined (ACE_HAS_DEV_POLL)
-    ACE_Reactor::instance(new ACE_Reactor(new ACE_Dev_Poll_Reactor(ACE::max_handles(), 1), 1), true);
-#else
-    ACE_Reactor::instance(new ACE_Reactor(new ACE_TP_Reactor(), true), true);
-#endif
-
-    sLog->outBasic("Max allowed open files is %d", ACE::max_handles());
-
     // authserver PID file creation
     std::string pidfile = ConfigMgr::GetStringDefault("PidFile", "");
     if (!pidfile.empty())
@@ -144,19 +138,11 @@ extern int main(int argc, char **argv)
         return 1;
     }
 
-    // Launch the listening network socket
-    RealmAcceptor acceptor;
-
     uint16 rmport = ConfigMgr::GetIntDefault("RealmServerPort", 3724);
     std::string bind_ip = ConfigMgr::GetStringDefault("BindIP", "0.0.0.0");
 
-    ACE_INET_Addr bind_addr(rmport, bind_ip.c_str());
-
-    if (acceptor.open(bind_addr, ACE_Reactor::instance(), ACE_NONBLOCK) == -1)
-    {
-        sLog->outError("Auth server can not bind to %s:%d", bind_ip.c_str(), rmport);
-        return 1;
-    }
+    boost::asio::io_service service;
+    SocketAcceptor sockets(service, rmport);
 
     // Initialise the signal handlers
     AuthServerSignalHandler SignalINT, SignalTERM;
@@ -220,7 +206,7 @@ extern int main(int argc, char **argv)
         sLog->SetLogDB(false);
 
     // Wait for termination signal
-    while (!stopEvent)
+    /*while (!stopEvent)
     {
         // dont move this outside the loop, the reactor will modify it
         ACE_Time_Value interval(0, 100000);
@@ -234,7 +220,9 @@ extern int main(int argc, char **argv)
             sLog->outDetail("Ping MySQL to keep connection alive");
             LoginDatabase.KeepAlive();
         }
-    }
+    }*/
+
+    service.run();
 
     // Close the Database Pool and library
     StopDB();
