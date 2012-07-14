@@ -60,6 +60,7 @@ include_directories(
   ${ACE_INCLUDE_DIR}
   ${MYSQL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIRS}
 )
 
 set(authserver_LINK_FLAGS "")
@@ -90,6 +91,7 @@ target_link_libraries(authserver
   ${OPENSSL_LIBRARIES}
   ${OPENSSL_EXTRA_LIBRARIES}
   ${OSX_LIBS}
+  ${Boost_LIBRARIES}
 )
 
 if( WIN32 )
