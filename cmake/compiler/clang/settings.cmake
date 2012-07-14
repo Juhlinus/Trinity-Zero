@@ -4,6 +4,8 @@ add_definitions(-D_BUILD_DIRECTIVE='"${CMAKE_BUILD_TYPE}"')
 add_definitions(-fno-delete-null-pointer-checks)
 add_definitions(-stdlib=libc++)
 
+set(CMAKE_EXE_LINKER_FLAGS "-stdlib=libc++ -lc++abi")
+
 if(PLATFORM EQUAL 32)
   # Required on 32-bit systems to enable SSE2 (standard on x64)
   add_definitions(-msse2 -mfpmath=sse)
