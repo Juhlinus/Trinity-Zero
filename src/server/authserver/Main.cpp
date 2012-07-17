@@ -138,20 +138,6 @@ extern int main(int argc, char **argv)
         return 1;
     }
 
-    uint16 rmport = ConfigMgr::GetIntDefault("RealmServerPort", 3724);
-    std::string bind_ip = ConfigMgr::GetStringDefault("BindIP", "0.0.0.0");
-
-    boost::asio::io_service service;
-    SocketAcceptor sockets(service, rmport);
-
-    // Initialise the signal handlers
-    AuthServerSignalHandler SignalINT, SignalTERM;
-
-    // Register authservers's signal handlers
-    ACE_Sig_Handler Handler;
-    Handler.register_handler(SIGINT, &SignalINT);
-    Handler.register_handler(SIGTERM, &SignalTERM);
-
     ///- Handle affinity for multiple processors and process priority on Windows
 #ifdef _WIN32
     {
@@ -221,6 +207,12 @@ extern int main(int argc, char **argv)
             LoginDatabase.KeepAlive();
         }
     }*/
+
+    uint16 rmport = ConfigMgr::GetIntDefault("RealmServerPort", 3724);
+    std::string bind_ip = ConfigMgr::GetStringDefault("BindIP", "0.0.0.0");
+
+    boost::asio::io_service service;
+    SocketAcceptor sockets(service, rmport);
 
     service.run();
 

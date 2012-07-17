@@ -22,6 +22,7 @@
 #include "Common.h"
 #include "BigNumber.h"
 #include "Common.h"
+#include "ByteBuffer.h"
 
 #include <string>
 #include <boost/bind.hpp>
@@ -47,7 +48,7 @@ public:
     AuthSocket(boost::asio::io_service& io_service);
     virtual ~AuthSocket();
 
-    virtual void OnRead();
+    void OnRead(const boost::system::error_code& ec);
     virtual void OnAccept();
     virtual void OnClose();
 
@@ -68,17 +69,13 @@ public:
     ACE_Thread_Mutex patcherLock;
 
     // Boost wrapper functions
-    void handler(const boost::system::error_code& /*error*/, std::size_t /*bytes_transferred*/) { }
     std::string getRemoteAddress() { return socket().remote_endpoint().address().to_string(); }
     uint16 getRemotePort() { return socket().remote_endpoint().port(); }
-
-    void ReadPacket(char* data, size_t bytesToRead) { boost::asio::async_read(socket(), boost::asio::buffer(data, bytesToRead), boost::bind(&AuthSocket::handler, shared_from_this(), boost::asio::placeholders::error(), boost::asio::placeholders::bytes_transferred())); }
-    void ReadPacketSkip(size_t bytesToSkip)
-    {
-        char waste[bytesToSkip];
-        boost::asio::async_read(socket(), boost::asio::buffer(waste, bytesToSkip), boost::bind(&AuthSocket::handler, shared_from_this(), boost::asio::placeholders::error(), boost::asio::placeholders::bytes_transferred()));
-    }
-    void WritePacket(char* data, size_t bytesToWrite) { boost::asio::async_write(socket(), boost::asio::buffer(data, bytesToWrite), boost::bind(&AuthSocket::handler, shared_from_this(), boost::asio::placeholders::error(), boost::asio::placeholders::bytes_transferred())); }
+    bool ReadPacket(uint8* data, size_t size) { return socket().read_some(boost::asio::buffer(data, size)); }
+    bool WritePacket(uint8* data, size_t size) { return socket().write_some(boost::asio::buffer(data, size)); }
+    void TriggerRead() { socket().async_read_some(boost::asio::null_buffers(),
+                                                  boost::bind(&AuthSocket::OnRead, shared_from_this(),
+                                                              boost::asio::placeholders::error())); }
 
     void ShutdownSocket() { socket().close(); socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both); }
 
