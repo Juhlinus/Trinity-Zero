@@ -231,19 +231,22 @@ void AuthSocket::OnRead(const boost::system::error_code& ec)
     if (!ec)
     {
         size_t i;
-        uint8 _cmd;
-        ReadPacket(&_cmd, 1);
+
+        _data.clear();
+        _data.resize(socket().available());
+        socket().read_some(boost::asio::buffer(_data.Base()));
+        _data.hexlike();
 
         // Circle through known commands and call the correct command handler
         for (i = 0; i < AUTH_TOTAL_COMMANDS; ++i)
         {
-            if ((uint8)table[i].cmd == _cmd && (table[i].status == STATUS_CONNECTED || (_authed && table[i].status == STATUS_AUTHED)))
+            if ((uint8)table[i].cmd == _data[0] && (table[i].status == STATUS_CONNECTED || (_authed && table[i].status == STATUS_AUTHED)))
             {
-                sLog->outStaticDebug("[Auth] got data for cmd %u recv length %u", _cmd, socket().available());
+                sLog->outStaticDebug("[Auth] got data for cmd %u recv length %u", _data[0], _data.size());
 
                 if (!(*this.*table[i].handler)())
                 {
-                    sLog->outStaticDebug("Command handler failed for cmd %u recv length %u", _cmd, socket().available());
+                    sLog->outStaticDebug("Command handler failed for cmd %u recv length %u", _data[0], _data.size());
                     return;
                 }
                 break;
@@ -303,13 +306,12 @@ void AuthSocket::_SetVSFields(const std::string& rI)
 bool AuthSocket::_HandleLogonChallenge()
 {
     sLog->outStaticDebug("Entering _HandleLogonChallenge");
-    if (socket().available() < sizeof(sAuthLogonChallenge_C))
+    if ((_data.size() - _data.rpos()) < sizeof(sAuthLogonChallenge_C))
         return false;
 
     // Read the first 4 bytes (header) to get the length of the remaining of the packet
     std::vector<uint8> buf(4);
-    buf[0] = AUTH_LOGON_CHALLENGE; // reset first byte to challenge because in OnRead offset was moved forward
-    ReadPacket(&buf[1], 3);
+    _data.read(&buf[0], 4);
 
 #if TRINITY_ENDIAN == TRINITY_BIGENDIAN
     EndianConvert(*((uint16*)(buf[0])));
@@ -318,7 +320,7 @@ bool AuthSocket::_HandleLogonChallenge()
     uint16 remaining = ((sAuthLogonChallenge_C *)&buf[0])->size;
     sLog->outStaticDebug("[AuthChallenge] got header, body is %#04x bytes", remaining);
 
-    if ((remaining < sizeof(sAuthLogonChallenge_C) - buf.size()) || (socket().available() < remaining))
+    if ((remaining < sizeof(sAuthLogonChallenge_C) - buf.size()) || ((_data.size() - _data.rpos()) < remaining))
         return false;
 
     //No big fear of memory outage (size is int16, i.e. < 65536)
@@ -327,7 +329,7 @@ bool AuthSocket::_HandleLogonChallenge()
     sAuthLogonChallenge_C *ch = (sAuthLogonChallenge_C*)&buf[0];
 
     // Read the remaining of the packet
-    ReadPacket(&buf[4], remaining);
+    _data.read(&buf[4], remaining);
     sLog->outStaticDebug("[AuthChallenge] got full packet, %#04x bytes", ch->size);
     sLog->outStaticDebug("[AuthChallenge] name(%d): '%s'", ch->I_len, ch->I);
 
@@ -502,7 +504,7 @@ bool AuthSocket::_HandleLogonChallenge()
             pkt << (uint8)WOW_FAIL_UNKNOWN_ACCOUNT;
     }
 
-    WritePacket((uint8*)pkt.contents(), pkt.size());
+    socket().write_some(boost::asio::buffer(pkt.Base()));
     TriggerRead();
 }
 
@@ -513,7 +515,7 @@ bool AuthSocket::_HandleLogonProof()
     // Read the packet
     sAuthLogonProof_C lp;
 
-    ReadPacket((uint8*)&lp, sizeof(sAuthLogonProof_C));
+    _data.read((uint8*)&lp, sizeof(sAuthLogonProof_C));
 
     // If the client has no valid version
     if (_expversion == NO_VALID_EXP_FLAG)
@@ -700,6 +702,7 @@ bool AuthSocket::_HandleLogonProof()
         }
     }
 
+    TriggerRead();
     return true;
 }
 
@@ -707,13 +710,13 @@ bool AuthSocket::_HandleLogonProof()
 bool AuthSocket::_HandleReconnectChallenge()
 {
     sLog->outStaticDebug("Entering _HandleReconnectChallenge");
-    if (socket().available() < sizeof(sAuthLogonChallenge_C))
+    if ((_data.size() - _data.rpos()) < sizeof(sAuthLogonChallenge_C))
         return false;
 
     // Read the first 4 bytes (header) to get the length of the remaining of the packet
-    std::vector<int8> buf(4);
+    std::vector<uint8> buf(4);
 
-    //ReadPacket((char*) &buf[0], 4);
+    _data.read(&buf[0], 4);
 
 #if TRINITY_ENDIAN == TRINITY_BIGENDIAN
     EndianConvert(*((uint16*)(buf[0])));
@@ -722,7 +725,7 @@ bool AuthSocket::_HandleReconnectChallenge()
     uint16 remaining = ((sAuthLogonChallenge_C *)&buf[0])->size;
     sLog->outStaticDebug("[ReconnectChallenge] got header, body is %#04x bytes", remaining);
 
-    if ((remaining < sizeof(sAuthLogonChallenge_C) - buf.size()) || (socket().available() < remaining))
+    if ((remaining < sizeof(sAuthLogonChallenge_C) - buf.size()) || ((_data.size() - _data.rpos()) < remaining))
         return false;
 
     // No big fear of memory outage (size is int16, i.e. < 65536)
@@ -731,7 +734,7 @@ bool AuthSocket::_HandleReconnectChallenge()
     sAuthLogonChallenge_C *ch = (sAuthLogonChallenge_C*)&buf[0];
 
     // Read the remaining of the packet
-    //ReadPacket((char*)&buf[4], remaining);
+    _data.read(&buf[4], remaining);
     sLog->outStaticDebug("[ReconnectChallenge] got full packet, %#04x bytes", ch->size);
     sLog->outStaticDebug("[ReconnectChallenge] name(%d): '%s'", ch->I_len, ch->I);
 
@@ -773,7 +776,8 @@ bool AuthSocket::_HandleReconnectChallenge()
     _reconnectProof.SetRand(16 * 8);
     pkt.append(_reconnectProof.AsByteArray(16), 16);        // 16 bytes random
     pkt << (uint64)0x00 << (uint64)0x00;                    // 16 bytes zeros
-    //WritePacket((char*)pkt.contents(), pkt.size());
+    socket().write_some(boost::asio::buffer(pkt.Base()));
+    TriggerRead();
     return true;
 }
 
@@ -783,7 +787,7 @@ bool AuthSocket::_HandleReconnectProof()
     sLog->outStaticDebug("Entering _HandleReconnectProof");
     // Read the packet
     sAuthReconnectProof_C lp;
-    //ReadPacket((char *)&lp, sizeof(sAuthReconnectProof_C));
+    _data.read((uint8*)&lp, sizeof(sAuthReconnectProof_C));
 
     if (_login.empty() || !_reconnectProof.GetNumBytes() || !K.GetNumBytes())
         return false;
@@ -804,8 +808,9 @@ bool AuthSocket::_HandleReconnectProof()
         pkt << (uint8)AUTH_RECONNECT_PROOF;
         pkt << (uint8)0x00;
         pkt << (uint16)0x00;                               // 2 bytes zeros
-        //WritePacket((char*)pkt.contents(), pkt.size());
+        socket().write_some(boost::asio::buffer(pkt.Base()));
         _authed = true;
+        TriggerRead();
         return true;
     }
     else
@@ -820,10 +825,10 @@ bool AuthSocket::_HandleReconnectProof()
 bool AuthSocket::_HandleRealmList()
 {
     sLog->outStaticDebug("Entering _HandleRealmList");
-    if (socket().available() < 5)
+    if ((_data.size() - _data.rpos()) < 5)
         return false;
 
-    //ReadPacketSkip(5);
+    _data.read_skip(5);
 
     // Get the user id (else close the connection)
     // No SQL injection (prepared statement)
@@ -920,7 +925,7 @@ bool AuthSocket::_HandleRealmList()
     hdr.append(RealmListSizeBuffer);                        // append RealmList's size buffer
     hdr.append(pkt);                                        // append realms in the realmlist
 
-    //WritePacket((char*)hdr.contents(), hdr.size());
+    socket().write_some(boost::asio::buffer(hdr.Base()));
 
     return true;
 }

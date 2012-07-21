@@ -23,6 +23,7 @@
 #include "Debugging/Errors.h"
 #include "Logging/Log.h"
 #include "Utilities/ByteConverter.h"
+#include "boost/asio/buffer.hpp"
 
 class ByteBufferException
 {
@@ -522,6 +523,8 @@ class ByteBuffer
             }
             sLog->outDebugInLine("\n");
         }
+
+        std::vector<uint8>& Base() { return _storage; }
 
     protected:
         size_t _rpos, _wpos;

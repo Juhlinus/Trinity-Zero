@@ -71,7 +71,6 @@ public:
     // Boost wrapper functions
     std::string getRemoteAddress() { return socket().remote_endpoint().address().to_string(); }
     uint16 getRemotePort() { return socket().remote_endpoint().port(); }
-    bool ReadPacket(uint8* data, size_t size) { return socket().read_some(boost::asio::buffer(data, size)); }
     bool WritePacket(uint8* data, size_t size) { return socket().write_some(boost::asio::buffer(data, size)); }
     void TriggerRead() { socket().async_read_some(boost::asio::null_buffers(),
                                                   boost::bind(&AuthSocket::OnRead, shared_from_this(),
@@ -81,6 +80,7 @@ public:
 
 private:
     tcp::socket _socket;
+    ByteBuffer _data;
 
     BigNumber N, s, g, v;
     BigNumber b, B;
