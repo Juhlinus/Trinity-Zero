@@ -20,7 +20,7 @@
 #define QUERYRESULT_H
 
 #include "AutoPtr.h"
-#include <ace/Thread_Mutex.h>
+//#include <ace/Thread_Mutex.h>
 
 #include "Field.h"
 #include "Log.h"

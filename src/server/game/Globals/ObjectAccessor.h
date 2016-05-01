@@ -20,8 +20,8 @@
 #define TRINITY_OBJECTACCESSOR_H
 
 #include "Define.h"
-#include <ace/Singleton.h>
-#include <ace/Thread_Mutex.h>
+//#include <ace/Singleton.h>
+//#include <ace/Thread_Mutex.h>
 #include "UnorderedMap.h"
 
 #include "UpdateData.h"

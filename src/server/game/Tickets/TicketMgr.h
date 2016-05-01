@@ -19,7 +19,7 @@
 #define _TICKETMGR_H
 
 #include <string>
-#include <ace/Singleton.h>
+//#include <ace/Singleton.h>
 
 #include "ObjectMgr.h"
 

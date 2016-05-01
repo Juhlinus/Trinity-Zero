@@ -18,8 +18,8 @@
 #ifndef _WORKERTHREAD_H
 #define _WORKERTHREAD_H
 
-#include <ace/Task.h>
-#include <ace/Activation_Queue.h>
+//#include <ace/Task.h>
+//#include <ace/Activation_Queue.h>
 
 class MySQLConnection;
 

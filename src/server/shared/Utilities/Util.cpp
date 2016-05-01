@@ -20,8 +20,8 @@
 #include "Util.h"
 #include "utf8.h"
 #include "SFMT.h"
-#include <ace/TSS_T.h>
-#include <ace/INET_Addr.h>
+//#include <ace/TSS_T.h>
+//#include <ace/INET_Addr.h>
 
 typedef ACE_TSS<SFMTRand> SFMTRandTSS;
 static SFMTRandTSS sfmtRand;

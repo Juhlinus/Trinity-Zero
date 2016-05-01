@@ -18,7 +18,7 @@
 #ifndef _TRINITY_AUTO_PTR_H
 #define _TRINITY_AUTO_PTR_H
 
-#include <ace/Bound_Ptr.h>
+//#include <ace/Bound_Ptr.h>
 
 namespace Trinity
 {

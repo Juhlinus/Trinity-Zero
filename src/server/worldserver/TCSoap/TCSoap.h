@@ -27,8 +27,8 @@
 #include "soapStub.h"
 #include "stdsoap2.h"
 
-#include <ace/Semaphore.h>
-#include <ace/Task.h>
+//#include <ace/Semaphore.h>
+//#include <ace/Task.h>
 
 class TCSoapRunnable: public ACE_Based::Runnable
 {

@@ -20,7 +20,7 @@
     \ingroup Trinityd
 */
 
-#include <ace/Sig_Handler.h>
+//#include <ace/Sig_Handler.h>
 
 #include "Common.h"
 #include "SystemConfig.h"

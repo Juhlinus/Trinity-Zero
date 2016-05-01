@@ -19,8 +19,8 @@
 #ifndef TRINITY_WAYPOINTMANAGER_H
 #define TRINITY_WAYPOINTMANAGER_H
 
-#include <ace/Singleton.h>
-#include <ace/Null_Mutex.h>
+//#include <ace/Singleton.h>
+//#include <ace/Null_Mutex.h>
 #include <vector>
 
 struct WaypointData

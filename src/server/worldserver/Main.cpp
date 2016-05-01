@@ -22,7 +22,7 @@
 
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
-#include <ace/Version.h>
+//#include <ace/Version.h>
 
 #include "Common.h"
 #include "Database/DatabaseEnv.h"

@@ -18,7 +18,7 @@
 #ifndef _ADHOCSTATEMENT_H
 #define _ADHOCSTATEMENT_H
 
-#include <ace/Future.h>
+//#include <ace/Future.h>
 #include "SQLOperation.h"
 
 typedef ACE_Future<QueryResult> QueryResultFuture;

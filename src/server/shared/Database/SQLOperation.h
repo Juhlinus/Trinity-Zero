@@ -18,8 +18,8 @@
 #ifndef _SQLOPERATION_H
 #define _SQLOPERATION_H
 
-#include <ace/Method_Request.h>
-#include <ace/Activation_Queue.h>
+//#include <ace/Method_Request.h>
+//#include <ace/Activation_Queue.h>
 
 #include "QueryResult.h"
 

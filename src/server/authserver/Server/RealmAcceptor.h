@@ -19,8 +19,8 @@
 #ifndef __REALMACCEPTOR_H__
 #define __REALMACCEPTOR_H__
 
-#include <ace/Acceptor.h>
-#include <ace/SOCK_Acceptor.h>
+//#include <ace/Acceptor.h>
+//#include <ace/SOCK_Acceptor.h>
 
 #include "RealmSocket.h"
 #include "AuthSocket.h"

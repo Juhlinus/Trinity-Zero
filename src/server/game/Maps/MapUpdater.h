@@ -1,8 +1,8 @@
 #ifndef _MAP_UPDATER_H_INCLUDED
 #define _MAP_UPDATER_H_INCLUDED
 
-#include <ace/Thread_Mutex.h>
-#include <ace/Condition_Thread_Mutex.h>
+//#include <ace/Thread_Mutex.h>
+//#include <ace/Condition_Thread_Mutex.h>
 
 #include "DelayExecutor.h"
 

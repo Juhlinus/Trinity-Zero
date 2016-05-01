@@ -21,8 +21,8 @@
 
 #include "Common.h"
 #include "Log.h"
-#include <ace/Stack_Trace.h>
-#include <ace/OS_NS_unistd.h>
+//#include <ace/Stack_Trace.h>
+//#include <ace/OS_NS_unistd.h>
 
 #define WPAssert(assertion) { if (!(assertion)) { ACE_Stack_Trace st; sLog->outError("\n%s:%i in %s ASSERTION FAILED:\n  %s\n%s\n", __FILE__, __LINE__, __FUNCTION__, #assertion, st.c_str()); *((volatile int*)NULL) = 0; } }
 #define WPError(assertion, errmsg) { if (!(assertion)) { sLog->outError("%\n%s:%i in %s ERROR:\n  %s\n", __FILE__, __LINE__, __FUNCTION__, (char *)errmsg); *((volatile int*)NULL) = 0; } }

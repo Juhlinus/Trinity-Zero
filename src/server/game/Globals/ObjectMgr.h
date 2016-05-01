@@ -35,7 +35,7 @@
 #include "Map.h"
 #include "ObjectAccessor.h"
 #include "ObjectDefines.h"
-#include <ace/Singleton.h>
+//#include <ace/Singleton.h>
 #include <string>
 #include <map>
 #include <limits>

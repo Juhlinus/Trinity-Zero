@@ -18,8 +18,8 @@
 #ifndef _CALLBACK_H
 #define _CALLBACK_H
 
-#include <ace/Future.h>
-#include <ace/Future_Set.h>
+//#include <ace/Future.h>
+//#include <ace/Future_Set.h>
 #include "QueryResult.h"
 
 typedef ACE_Future<QueryResult> QueryResultFuture;

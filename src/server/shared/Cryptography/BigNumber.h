@@ -20,7 +20,7 @@
 #define _AUTH_BIGNUMBER_H
 
 #include "Define.h"
-#include <ace/Mutex.h>
+//#include <ace/Mutex.h>
 
 struct bignum_st;
 

@@ -25,8 +25,8 @@
 
 #include "Common.h"
 #include "Timer.h"
-#include <ace/Singleton.h>
-#include <ace/Atomic_Op.h>
+//#include <ace/Singleton.h>
+//#include <ace/Atomic_Op.h>
 #include "SharedDefines.h"
 #include "QueryResult.h"
 #include "Callback.h"

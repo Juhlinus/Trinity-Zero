@@ -3,8 +3,8 @@
 #include "Map.h"
 #include "DatabaseEnv.h"
 
-#include <ace/Guard_T.h>
-#include <ace/Method_Request.h>
+//#include <ace/Guard_T.h>
+//#include <ace/Method_Request.h>
 
 class WDBThreadStartReq1 : public ACE_Method_Request
 {

@@ -27,8 +27,10 @@
 
 enum DruidSpells
 {
-    DRUID_INCREASED_MOONFIRE_DURATION   = 38414,
-    DRUID_SURVIVAL_INSTINCTS            = 50322,
+    /** Neither of these are vanilla
+     *DRUID_INCREASED_MOONFIRE_DURATION   = 38414,
+     *DRUID_SURVIVAL_INSTINCTS            = 50322,
+     */
 };
 
 // 69366 - Moonkin Form passive
@@ -173,7 +175,7 @@ class spell_dru_predatory_strikes : public SpellScriptLoader
             return new spell_dru_predatory_strikes_AuraScript();
         }
 };
-
+/*
 class spell_dru_survival_instincts : public SpellScriptLoader
 {
     public:
@@ -202,21 +204,21 @@ class spell_dru_survival_instincts : public SpellScriptLoader
         {
             PrepareAuraScript(spell_dru_survival_instincts_AuraScript);
 
-            bool Validate(SpellInfo const* /*spell*/)
+            bool Validate(SpellInfo const* /*spell*//*)
             {
                 if (!sSpellMgr->GetSpellInfo(DRUID_SURVIVAL_INSTINCTS))
                     return false;
                 return true;
             }
 
-            void AfterApply(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
+            void AfterApply(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*//*)
             {
                 Unit* target = GetTarget();
                 int32 bp0 = target->CountPctFromMaxHealth(aurEff->GetAmount());
                 target->CastCustomSpell(target, DRUID_SURVIVAL_INSTINCTS, &bp0, NULL, NULL, true);
             }
 
-            void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+            void AfterRemove(AuraEffect const* /*aurEff*//*, AuraEffectHandleModes /*mode*//*)
             {
                 GetTarget()->RemoveAurasDueToSpell(DRUID_SURVIVAL_INSTINCTS);
             }
@@ -238,12 +240,12 @@ class spell_dru_survival_instincts : public SpellScriptLoader
             return new spell_dru_survival_instincts_AuraScript();
         }
 };
-
+*/
 void AddSC_druid_spell_scripts()
 {
     new spell_dru_moonkin_form_passive();
     new spell_dru_starfall_aoe();
     new spell_dru_starfall_dummy();
     new spell_dru_predatory_strikes();
-    new spell_dru_survival_instincts();
+    //new spell_dru_survival_instincts();
 }

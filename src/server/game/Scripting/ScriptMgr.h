@@ -20,8 +20,8 @@
 #define SC_SCRIPTMGR_H
 
 #include "Common.h"
-#include <ace/Singleton.h>
-#include <ace/Atomic_Op.h>
+//#include <ace/Singleton.h>
+//#include <ace/Atomic_Op.h>
 
 #include "DBCStores.h"
 #include "Player.h"

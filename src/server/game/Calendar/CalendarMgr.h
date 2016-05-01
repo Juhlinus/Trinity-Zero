@@ -18,7 +18,7 @@
 #ifndef TRINITY_CALENDARMGR_H
 #define TRINITY_CALENDARMGR_H
 
-#include <ace/Singleton.h>
+//#include <ace/Singleton.h>
 #include "Calendar.h"
 
 class CalendarMgr

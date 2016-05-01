@@ -19,7 +19,7 @@
 #ifndef __TRINITY_SOCIALMGR_H
 #define __TRINITY_SOCIALMGR_H
 
-#include <ace/Singleton.h>
+//#include <ace/Singleton.h>
 #include "DatabaseEnv.h"
 #include "Common.h"
 

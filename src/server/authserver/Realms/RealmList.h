@@ -19,8 +19,8 @@
 #ifndef _REALMLIST_H
 #define _REALMLIST_H
 
-#include <ace/Singleton.h>
-#include <ace/Null_Mutex.h>
+//#include <ace/Singleton.h>
+//#include <ace/Null_Mutex.h>
 #include "Common.h"
 
 enum RealmFlags

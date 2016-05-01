@@ -21,8 +21,8 @@
 
 #include <sys/types.h>
 
-#include <ace/Basic_Types.h>
-#include <ace/ACE_export.h>
+//#include <ace/Basic_Types.h>
+//#include <ace/ACE_export.h>
 
 #include "CompilerDefs.h"
 
