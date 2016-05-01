@@ -16,6 +16,8 @@
 #ifndef G3D_WIN32
 #   include <pthread.h>
 #   include <signal.h>
+#   include <ctime>
+#   include <cerrno>
 #endif
 
 
@@ -48,7 +50,7 @@ public:
 #           ifdef G3D_WIN32
                 Sleep(0);
 #           else
-                usleep(0);
+                my_sleep(0);
 #           endif
         }
         return first;
@@ -56,6 +58,25 @@ public:
 
     inline void unlock() {
         x.compareAndSet(1, 0);
+    }
+
+    void my_sleep(unsigned msec) {
+        struct timespec req, rem;
+        int err;
+        req.tv_sec = msec / 1000;
+        req.tv_nsec = (msec % 1000) * 1000000;
+        while ((req.tv_sec != 0) || (req.tv_nsec != 0)) {
+            if (nanosleep(&req, &rem) == 0)
+                break;
+            err = errno;
+            // Interrupted; continue
+            if (err == EINTR) {
+                req.tv_sec = rem.tv_sec;
+                req.tv_nsec = rem.tv_nsec;
+            }
+            // Unhandleable error (EFAULT (bad pointer), EINVAL (bad timeval in tv_nsec), or ENOSYS (function not supported))
+            break;
+        }
     }
 
 };
